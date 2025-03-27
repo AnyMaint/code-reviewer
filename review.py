@@ -32,42 +32,56 @@ pr = repo.get_pull(PR_NUMBER)
 # OpenAI setup
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
+# Function to estimate tokens (rough approximation)
+def estimate_tokens(text):
+    return len(text) // 4  # 1 token ≈ 4 characters
+
 # Function to get AI review for a code chunk
-def get_ai_review(code_chunk):
+def get_ai_review(code_chunk, is_diff_only=False):
+    prompt = "You are a code reviewer. Provide concise feedback on this code diff with full file context:" if not is_diff_only else "You are a code reviewer. Provide concise feedback on this diff (full file too large):"
     response = client.chat.completions.create(
-        model="gpt-4o-mini",  # Updated to gpt-4o-mini
+        model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a code reviewer. Provide concise feedback on this code diff:"},
+            {"role": "system", "content": prompt},
             {"role": "user", "content": code_chunk}
         ],
-        max_tokens=200  # Smaller limit for individual comments
+        max_tokens=200
     )
     return response.choices[0].message.content.strip()
 
+# Token limit threshold (leave room for prompt and output)
+MAX_TOKENS = 100000
+
 # Check if PR is open
 if pr.state == "open":
-    # Process each file and its changes
     for file in pr.get_files():
         if file.patch:  # Only process files with a diff
-            # Get the diff for this file
+            # Get the full file content from the head commit
+            file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
             diff = file.patch
-            review = get_ai_review(diff)
+            full_context = f"Full file:\n{file_content}\n\nDiff:\n{diff}"
 
-            if review and "no feedback" not in review.lower():  # Skip empty or irrelevant reviews
-                # Find a line to comment on (simplified: first added/changed line)
+            # Estimate tokens
+            total_tokens = estimate_tokens(full_context)
+            if total_tokens < MAX_TOKENS:
+                review = get_ai_review(full_context)
+            else:
+                # Fallback to diff-only if too large
+                review = get_ai_review(diff, is_diff_only=True)
+
+            if review and "no feedback" not in review.lower():
                 lines = diff.splitlines()
                 for i, line in enumerate(lines, 1):
-                    if line.startswith("+") and not line.startswith("+++"):  # Added line
+                    if line.startswith("+") and not line.startswith("+++"):
                         position = i
                         break
                 else:
-                    position = 1  # Fallback to first line if no specific addition found
+                    position = 1
 
                 comment = f"AI Review: {review}"
                 if args.dry_run:
                     print(f"Would comment on {file.filename} at line {position}: {comment}")
                 else:
-                    # Post a review comment on the specific line
                     pr.create_review_comment(
                         body=comment,
                         commit_id=pr.head.sha,
@@ -77,9 +91,21 @@ if pr.state == "open":
                     print(f"Posted comment on {file.filename} at line {position}: {comment}")
 
 else:
-    # For closed PRs, post a single general comment
-    diff = "\n".join([file.patch for file in pr.get_files() if file.patch])
-    review = get_ai_review(diff)
+    # For closed PRs, combine all files and diffs
+    all_content = []
+    for file in pr.get_files():
+        if file.patch:
+            file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
+            all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}")
+    full_context = "\n\n".join(all_content)
+
+    total_tokens = estimate_tokens(full_context)
+    if total_tokens < MAX_TOKENS:
+        review = get_ai_review(full_context)
+    else:
+        diff_only = "\n".join([file.patch for file in pr.get_files() if file.patch])
+        review = get_ai_review(diff_only, is_diff_only=True)
+
     comment = f"AI Code Review (PR closed):\n\n{review}"
     if args.dry_run:
         print("Would post general comment to closed PR:")
