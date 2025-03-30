@@ -4,58 +4,78 @@ from github import Github
 import openai
 import re
 
+# Prompt constants
+GENERAL_PROMPT = (
+    "You are a code reviewer. This input includes a PR description and git diffs "
+    "(and optionally whole files for context). Provide a general overview of what "
+    "this PR attempts to do based on its description and changes:"
+)
+ISSUES_PROMPT = (
+    "You are a code reviewer. This input includes git diffs (and optionally whole "
+    "files for context). List only code issues or potential problems found in the "
+    "diffs, ignoring unchanged code in whole files unless it directly affects the diff. "
+    "Do not praise what’s good:"
+)
+
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="AI Code Review for GitHub PRs")
-parser.add_argument("--dry-run", action="store_true", help="Print comments to console instead of posting to GitHub")
+parser.add_argument("repository", help="Repository name (e.g., 'username/repo')")
+parser.add_argument("pr_number", type=int, help="Pull Request number")
+parser.add_argument("--mode", choices=["general", "issues", "comments"], default="general",
+                    help="Mode: 'general' (PR overview), 'issues' (issues only), 'comments' (issues as PR comments)")
+parser.add_argument("--full-context", action="store_true", default=False,
+                    help="Send full files with diffs to OpenAI (default: diffs only)")
+parser.add_argument("--debug", action="store_true", help="Print OpenAI API request details")
 args = parser.parse_args()
 
 # Fetch values from environment variables
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-REPO_NAME = os.getenv("REPO_NAME")
-PR_NUMBER = os.getenv("PR_NUMBER")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # Default to gpt-4o-mini
 
 # Validate environment variables
-if not all([GITHUB_TOKEN, OPENAI_API_KEY, REPO_NAME, PR_NUMBER]):
-    raise ValueError("Missing required environment variables: GITHUB_TOKEN, OPENAI_API_KEY, REPO_NAME, or PR_NUMBER")
-
-# Convert PR_NUMBER to integer
-try:
-    PR_NUMBER = int(PR_NUMBER)
-except ValueError:
-    raise ValueError("PR_NUMBER must be an integer")
+if not all([GITHUB_TOKEN, OPENAI_API_KEY]):
+    raise ValueError("Missing required environment variables: GITHUB_TOKEN or OPENAI_API_KEY")
 
 # GitHub setup
 g = Github(GITHUB_TOKEN)
-repo = g.get_repo(REPO_NAME)
-pr = repo.get_pull(PR_NUMBER)
+repo = g.get_repo(args.repository)
+pr = repo.get_pull(args.pr_number)
 
 # OpenAI setup
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
-# Function to estimate tokens (rough approximation)
-def estimate_tokens(text):
-    return len(text) // 4  # 1 token ≈ 4 characters
+# Function to get the prompt based on mode
+def get_prompt(mode):
+    if mode == "general":
+        return GENERAL_PROMPT
+    elif mode in ["issues", "comments"]:
+        return ISSUES_PROMPT
+    raise ValueError(f"Unknown mode: {mode}")
 
 # Function to get AI review for a code chunk
-def get_ai_review(code_chunk, is_diff_only=False):
-    prompt = "You are a code reviewer. Provide concise feedback on this code diff with full file context:" if not is_diff_only else "You are a code reviewer. Provide concise feedback on this diff (full file too large):"
+def get_ai_review(code_chunk, mode):
+    prompt = get_prompt(mode)
+
+    if args.debug:
+        print(f"OpenAI Request:\nModel: {OPENAI_MODEL}\nPrompt: {prompt}\nContent: {code_chunk[:500]}... (truncated)")
+
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=OPENAI_MODEL,
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": code_chunk}
         ],
-        max_tokens=200
+        temperature=0.0  # Maximum consistency
+        # max_tokens omitted for unlimited output (up to model limit, e.g., 4096 for gpt-4o-mini)
     )
     return response.choices[0].message.content.strip()
 
-# Function to parse diff and get file line number
+# Function to parse diff and get file line number (for comments mode)
 def get_file_line_from_diff(diff):
     lines = diff.splitlines()
     for i, line in enumerate(lines):
         if line.startswith("@@"):
-            # Parse @@ -start,end +start,end @@
             match = re.match(r"@@ -(\d+),(\d+) \+(\d+),(\d+) @@", line)
             if match:
                 new_start = int(match.group(3))  # Start line in the new file
@@ -64,70 +84,61 @@ def get_file_line_from_diff(diff):
                         return new_start + j - 1  # Adjust for zero-based counting
     return 1  # Fallback if no valid line found
 
-# Token limit threshold (leave room for prompt and output)
-MAX_TOKENS = 100000
+# Prepare content based on mode and full-context flag
+if args.mode == "general":
+    pr_description = pr.body or "No description provided"
+    if args.full_context:
+        all_content = [f"PR Description:\n{pr_description}"]
+        for file in pr.get_files():
+            if file.patch:
+                file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
+                all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}\n{'-' * 16}")
+        content = "\n\n".join(all_content)
+    else:
+        content = f"PR Description:\n{pr_description}\n\nDiffs:\n" + "\n".join([file.patch + "\n" + "-" * 16 for file in pr.get_files() if file.patch])
+elif args.mode in ["issues", "comments"]:
+    if args.full_context:
+        all_content = []
+        for file in pr.get_files():
+            if file.patch:
+                file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
+                all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}\n{'-' * 16}")
+        content = "\n\n".join(all_content)
+    else:
+        content = "\n".join([file.patch + "\n" + "-" * 16 for file in pr.get_files() if file.patch])
 
-# Check if PR is open
-if pr.state == "open":
-    # Get the head commit object
-    head_commit = repo.get_commit(pr.head.sha)
+# Get the review
+review_text = get_ai_review(content, args.mode)
 
-    for file in pr.get_files():
-        if file.patch:  # Only process files with a diff
-            # Get the full file content from the head commit
-            file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
-            diff = file.patch
-            full_context = f"Full file:\n{file_content}\n\nDiff:\n{diff}"
+# Process based on mode
+if args.mode == "general":
+    print(f"General PR Review:\n{review_text}")
 
-            # Estimate tokens
-            total_tokens = estimate_tokens(full_context)
-            if total_tokens < MAX_TOKENS:
-                review_text = get_ai_review(full_context)
-            else:
-                review_text = get_ai_review(diff, is_diff_only=True)
+elif args.mode == "issues":
+    print(f"Code Issues:\n{review_text}")
 
-            if review_text and "no feedback" not in review_text.lower():
-                # Get the file line number from the diff
-                line_num = get_file_line_from_diff(diff)
+elif args.mode == "comments":
+    print(f"Code Issues:\n{review_text}")
+    if pr.state == "open":
+        head_commit = repo.get_commit(pr.head.sha)
+        for file in pr.get_files():
+            if file.patch:
+                file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8") if args.full_context else ""
+                diff = file.patch
+                chunk = f"File: {file.filename}\n{file_content}\n\nDiff:\n{diff}" if args.full_context else diff
+                file_review = get_ai_review(chunk, args.mode)
 
-                comment = f"AI Review: {review_text}"
-                if args.dry_run:
-                    print(f"Would comment on {file.filename} at line {line_num}: {comment}")
-                else:
+                if file_review and "no feedback" not in file_review.lower():
+                    line_num = get_file_line_from_diff(diff)
+                    comment = f"AI Issue: {file_review}"
                     try:
-                        # Post the review comment with correct parameters
                         pr.create_review_comment(
                             body=comment,
-                            commit=head_commit,  # Commit object
+                            commit=head_commit,
                             path=file.filename,
                             line=line_num,
-                            side="RIGHT"  # Comment on the new version
+                            side="RIGHT"
                         )
                         print(f"Posted comment on {file.filename} at line {line_num}: {comment}")
                     except Exception as e:
                         print(f"Error posting comment on {file.filename}: {str(e)}")
-
-else:
-    # For closed PRs, combine all files and diffs
-    all_content = []
-    for file in pr.get_files():
-        if file.patch:
-            file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
-            all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}")
-    full_context = "\n\n".join(all_content)
-
-    total_tokens = estimate_tokens(full_context)
-    if total_tokens < MAX_TOKENS:
-        review = get_ai_review(full_context)
-    else:
-        diff_only = "\n".join([file.patch for file in pr.get_files() if file.patch])
-        review = get_ai_review(diff_only, is_diff_only=True)
-
-    comment = f"AI Code Review (PR closed):\n\n{review}"
-    if args.dry_run:
-        print("Would post general comment to closed PR:")
-        print(comment)
-    else:
-        pr.create_issue_comment(comment)
-        print("Posted general comment to closed PR:")
-        print(comment)
