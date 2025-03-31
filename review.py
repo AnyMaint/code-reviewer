@@ -50,16 +50,17 @@ def get_file_line_from_diff(diff):
 
 # Prepare content based on mode and full-context flag
 if args.mode == "general":
+    pr_title = pr.title or "No title provided"
     pr_description = pr.body or "No description provided"
     if args.full_context:
-        all_content = [f"PR Description:\n{pr_description}"]
+        all_content = [f"PR Title: {pr_title}\nPR Description:\n{pr_description}"]
         for file in pr.get_files():
             if file.patch:
                 file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
                 all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}\n{'-' * 16}")
         content = "\n\n".join(all_content)
     else:
-        content = f"PR Description:\n{pr_description}\n\nDiffs:\n" + "\n".join([file.patch + "\n" + "-" * 16 for file in pr.get_files() if file.patch])
+        content = f"PR Title: {pr_title}\nPR Description:\n{pr_description}\n\nDiffs:\n" + "\n".join([file.patch + "\n" + "-" * 16 for file in pr.get_files() if file.patch])
 elif args.mode in ["issues", "comments"]:
     if args.full_context:
         all_content = []
