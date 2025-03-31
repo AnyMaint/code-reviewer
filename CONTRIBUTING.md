@@ -28,7 +28,7 @@ cd code-reviewer
   export GOOGLE_API_KEY="your-google-key"
   ```
 4. **Test It**:
-- Run `python review.py AnyMaint/repo 1` to ensure it works.
+- Run `python review.py AnyMaint/code-reviewer 1` to ensure it works.
 
 ## Contribution Guidelines
 - **Issues**:

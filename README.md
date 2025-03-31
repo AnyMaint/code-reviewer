@@ -48,7 +48,7 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
 We’re a small startup and love community help! Fork it, fix it, PR it—see [CONTRIBUTING.md](CONTRIBUTING.md) for details. Found a bug? Open an issue!
 
 ## About AnyMaint
-[AnyMaint](https://anymaint.com) builds smart CMMS solutions for industry—web-based, modular, and ML-driven. We streamline maintenance for pharma, medical devices, and more. This tool’s our open-source start—check out our full platform at anymaint.com!
+[AnyMaint](https://anymaint.com) delivers a web-based CMMS for maintenance management, blending machine learning with modular design to monitor equipment, schedule calibrations, and optimize workflows. Tailored for industries like pharmaceuticals and medical devices, we simplify data-driven decisions for production floors.
 
 ## License
 Licensed under the [BSD 3-Clause License](LICENSE) - see the [LICENSE](LICENSE) file for details.
