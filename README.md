@@ -30,6 +30,9 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
    export OPENAI_API_KEY="your-openai-key"  # For ChatGPT
    export GOOGLE_API_KEY="your-google-key"  # For Gemini
    export XAI_API_KEY="your-x-key"     # For Grok
+
+   export OPENAI_BASE_URL="http://localhost:11434/v1" # For ollama or self-managged instance of OpenAI-compatible LLM.
+   export OPENAI_MODEL=llama3.1:8b #
 ```
 ## Usage
 
