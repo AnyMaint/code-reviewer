@@ -1,11 +1,11 @@
+# grok_llm.py
 import os
 import requests
-import json
 from llm_interface import LLMInterface
-from prompts import GENERAL_PROMPT, ISSUES_PROMPT
+from prompts import get_prompt
 
 class GrokLLM(LLMInterface):
-    def __init__(self, debug: bool = False):
+    def __init__(self, debug: bool = False, deep: bool = False):
         api_key = os.getenv("XAI_API_KEY")
         if not api_key:
             raise ValueError("XAI_API_KEY environment variable is required for Grok")
@@ -14,17 +14,14 @@ class GrokLLM(LLMInterface):
         self.endpoint = "/chat/completions"
         self.model = os.getenv("GROK_MODEL", "grok-3-latest")
         self.debug = debug
+        self.deep = deep
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
         }
 
     def _get_prompt(self, mode: str) -> str:
-        if mode == "general":
-            return GENERAL_PROMPT
-        elif mode in ["issues", "comments"]:
-            return ISSUES_PROMPT
-        raise ValueError(f"Unknown mode: {mode}")
+        return get_prompt(mode, self.deep)
 
     def generate_review(self, content: str, mode: str) -> str:
         prompt = self._get_prompt(mode)
@@ -39,7 +36,6 @@ class GrokLLM(LLMInterface):
                 {"role": "user", "content": content}
             ],
             "temperature": 0.0  # Maximum consistency
-
         }
 
         try:

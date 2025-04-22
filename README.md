@@ -1,4 +1,4 @@
-# AI Code Reviewer
+# AI Code Reviewer (1.1.0)
 *Automate Pull Request Reviews with ChatGPT, Grok & Gemini*
 
 ![BSD 3-Clause License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)
@@ -12,6 +12,7 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
 - **Issue Detection**: Identify potential problems in diffs (ignores unchanged code by default).
 - **PR Comments**: Automatically post issues as inline comments on open pull requests.
 - **Multi-LLM Support**: Switch between ChatGPT, Grok and Gemini with a simple flag.
+- **Deep Review Mode**: Use `--deep` for verbose reviews including non-bug feedback like data migration or documentation; default mode focuses on critical bugs only.
 
 ## Installation
 1. Clone the repo:
@@ -34,14 +35,19 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
 
 There is an article how to use the tool. 
 It may be outdated, but it is a good start: [How to Use AI Code Reviewer](https://medium.com/itnext/ai-code-reviewer-automate-your-code-reviews-137bfaa20e8b)
-- **General PR Summary**:
+- **GGeneral PR Summary (Default: Bug-Focused):**:
 ```bash
-   python main.py --repo "owner/repo" --pr 123
+      python review.py --repo "owner/repo" --pr 123
 ```
-- **List Issues Only Using Grok**:
+- **List Issues Only Using Grok (Bug-Focused)**:
 ```bash
-   python main.py --repo "owner/repo" --pr 123 --mode issues --llm grok
+   python review.py --repo "owner/repo" --pr 123 --mode issues --llm grok
 ```
+- **List Issues with Verbose Feedback Using ChatGPT**:
+```bash
+   python review.py --repo "owner/repo" --pr 123 --mode issues --llm chatgpt --deep
+```
+
 - **Post Comments to PR in GitHub with Gemini**:
 ```bash
    python main.py --repo "owner/repo" --pr 123 --mode comments --llm gemini

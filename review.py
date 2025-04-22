@@ -1,3 +1,4 @@
+# review.py
 import os
 import argparse
 from github import Github
@@ -6,6 +7,8 @@ from chatgpt_llm import ChatGPTLLM
 from gemini_llm import GeminiLLM
 from grok_llm import GrokLLM
 
+__version__ = "1.1.0"
+
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="AI Code Review for GitHub PRs")
 parser.add_argument("repository", help="Repository name (e.g., 'username/repo')")
@@ -13,9 +16,11 @@ parser.add_argument("pr_number", type=int, help="Pull Request number")
 parser.add_argument("--mode", choices=["general", "issues", "comments"], default="general",
                     help="Mode: 'general' (PR overview), 'issues' (issues only), 'comments' (issues as PR comments)")
 parser.add_argument("--full-context", action="store_true", default=False,
-                    help="Send full files with diffs to OpenAI (default: diffs only)")
+                    help="Send full files with diffs to the LLM (default: diffs only)")
 parser.add_argument("--llm", choices=["chatgpt", "gemini", "grok"], default="chatgpt",
                     help="LLM to use: 'chatgpt', 'gemini', or 'grok' (default: chatgpt)")
+parser.add_argument("--deep", action="store_true", default=False,
+                    help="Enable deep mode for verbose reviews including non-bug feedback")
 parser.add_argument("--debug", action="store_true", help="Print LLM API request details")
 args = parser.parse_args()
 
@@ -33,10 +38,10 @@ pr = repo.get_pull(args.pr_number)
 llm_map = {
     "chatgpt": ChatGPTLLM,
     "gemini": GeminiLLM,
-    "grok": GrokLLM  # Add Grok
+    "grok": GrokLLM
 }
 
-llm = llm_map[args.llm](debug=args.debug)
+llm = llm_map[args.llm](debug=args.debug, deep=args.deep)
 
 # Function to parse diff and get file line number (for comments mode)
 def get_file_line_from_diff(diff):
