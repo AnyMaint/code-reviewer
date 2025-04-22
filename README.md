@@ -29,13 +29,13 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
    export GITHUB_TOKEN="your-github-token"  # 
    export OPENAI_API_KEY="your-openai-key"  # For ChatGPT
    export GOOGLE_API_KEY="your-google-key"  # For Gemini
-   export XAI_API_KEY="your-google-key"     # For Grok
+   export XAI_API_KEY="your-x-key"     # For Grok
 ```
 ## Usage
 
 There is an article how to use the tool. 
 It may be outdated, but it is a good start: [How to Use AI Code Reviewer](https://medium.com/itnext/ai-code-reviewer-automate-your-code-reviews-137bfaa20e8b)
-- **GGeneral PR Summary (Default: Bug-Focused):**:
+- **General PR Summary (Default: Bug-Focused):**:
 ```bash
       python review.py --repo "owner/repo" --pr 123
 ```
