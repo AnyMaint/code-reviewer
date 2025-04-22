@@ -40,20 +40,20 @@ There is an article how to use the tool.
 It may be outdated, but it is a good start: [How to Use AI Code Reviewer](https://medium.com/itnext/ai-code-reviewer-automate-your-code-reviews-137bfaa20e8b)
 - **General PR Summary (Default: Bug-Focused):**:
 ```bash
-      python review.py --repo "owner/repo" --pr 123
+      python review.py "owner/repo" 123
 ```
 - **List Issues Only Using Grok (Bug-Focused)**:
 ```bash
-   python review.py --repo "owner/repo" --pr 123 --mode issues --llm grok
+   python review.py "owner/repo" 123 --mode issues --llm grok
 ```
 - **List Issues with Verbose Feedback Using ChatGPT**:
 ```bash
-   python review.py --repo "owner/repo" --pr 123 --mode issues --llm chatgpt --deep
+   python review.py "owner/repo" 123 --mode issues --llm chatgpt --deep
 ```
 
 - **Post Comments to PR in GitHub with Gemini**:
 ```bash
-   python main.py --repo "owner/repo" --pr 123 --mode comments --llm gemini
+   python main.py "owner/repo" 123 --mode comments --llm gemini
 ```
 - Add `--full-context` to include whole files, or `--debug` to see LLM requests.
 
