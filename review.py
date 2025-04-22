@@ -4,6 +4,7 @@ from github import Github
 import re
 from chatgpt_llm import ChatGPTLLM
 from gemini_llm import GeminiLLM
+from grok_llm import GrokLLM
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="AI Code Review for GitHub PRs")
@@ -13,8 +14,8 @@ parser.add_argument("--mode", choices=["general", "issues", "comments"], default
                     help="Mode: 'general' (PR overview), 'issues' (issues only), 'comments' (issues as PR comments)")
 parser.add_argument("--full-context", action="store_true", default=False,
                     help="Send full files with diffs to OpenAI (default: diffs only)")
-parser.add_argument("--llm", choices=["chatgpt", "gemini"], default="chatgpt",
-                    help="LLM to use: 'chatgpt' or 'gemini' (default: chatgpt)")
+parser.add_argument("--llm", choices=["chatgpt", "gemini", "grok"], default="chatgpt",
+                    help="LLM to use: 'chatgpt', 'gemini', or 'grok' (default: chatgpt)")
 parser.add_argument("--debug", action="store_true", help="Print LLM API request details")
 args = parser.parse_args()
 
@@ -31,8 +32,10 @@ pr = repo.get_pull(args.pr_number)
 # LLM setup
 llm_map = {
     "chatgpt": ChatGPTLLM,
-    "gemini": GeminiLLM
+    "gemini": GeminiLLM,
+    "grok": GrokLLM  # Add Grok
 }
+
 llm = llm_map[args.llm](debug=args.debug)
 
 # Function to parse diff and get file line number (for comments mode)
