@@ -1,4 +1,6 @@
 # review.py
+__version__ = "1.1.1"
+
 import os
 import argparse
 from github import Github
@@ -6,8 +8,6 @@ import re
 from chatgpt_llm import ChatGPTLLM
 from gemini_llm import GeminiLLM
 from grok_llm import GrokLLM
-
-__version__ = "1.1.0"
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="AI Code Review for GitHub PRs")
@@ -22,6 +22,8 @@ parser.add_argument("--llm", choices=["chatgpt", "gemini", "grok"], default="cha
 parser.add_argument("--deep", action="store_true", default=False,
                     help="Enable deep mode for verbose reviews including non-bug feedback")
 parser.add_argument("--debug", action="store_true", help="Print LLM API request details")
+parser.add_argument("--version", action="version", version=f"AI Code Reviewer {__version__}",
+                    help="Show the version and exit")
 args = parser.parse_args()
 
 # Fetch GitHub token
@@ -56,29 +58,28 @@ def get_file_line_from_diff(diff):
                         return new_start + j - 1  # Adjust for zero-based counting
     return 1  # Fallback if no valid line found
 
+# Prepare PR title and description for all modes
+pr_title = pr.title or "No title provided"
+pr_description = pr.body or "No description provided"
+base_content = f"PR Title: {pr_title}\nPR Description:\n{pr_description}\n\n"
+
 # Prepare content based on mode and full-context flag
+if args.full_context:
+    all_content = []
+    for file in pr.get_files():
+        if file.patch:
+            file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
+            all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}\n{'-' * 16}")
+    diff_content = "\n\n".join(all_content)
+else:
+    diff_content = "\n".join([file.patch + "\n" + "-" * 16 for file in pr.get_files() if file.patch])
+
+# Combine PR title, description, and diffs for all modes
+content = base_content
 if args.mode == "general":
-    pr_title = pr.title or "No title provided"
-    pr_description = pr.body or "No description provided"
-    if args.full_context:
-        all_content = [f"PR Title: {pr_title}\nPR Description:\n{pr_description}"]
-        for file in pr.get_files():
-            if file.patch:
-                file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
-                all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}\n{'-' * 16}")
-        content = "\n\n".join(all_content)
-    else:
-        content = f"PR Title: {pr_title}\nPR Description:\n{pr_description}\n\nDiffs:\n" + "\n".join([file.patch + "\n" + "-" * 16 for file in pr.get_files() if file.patch])
+    content += "Diffs:\n" + diff_content
 elif args.mode in ["issues", "comments"]:
-    if args.full_context:
-        all_content = []
-        for file in pr.get_files():
-            if file.patch:
-                file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8")
-                all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}\n{'-' * 16}")
-        content = "\n\n".join(all_content)
-    else:
-        content = "\n".join([file.patch + "\n" + "-" * 16 for file in pr.get_files() if file.patch])
+    content += "Diffs:\n" + diff_content
 
 # Get the review
 review_text = llm.generate_review(content, args.mode)
