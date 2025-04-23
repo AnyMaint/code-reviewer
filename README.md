@@ -30,6 +30,9 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
    export OPENAI_API_KEY="your-openai-key"  # For ChatGPT
    export GOOGLE_API_KEY="your-google-key"  # For Gemini
    export XAI_API_KEY="your-x-key"     # For Grok
+
+   export OPENAI_BASE_URL="http://localhost:11434/v1" # For ollama or self-managged instance of OpenAI-compatible LLM.
+   export OPENAI_MODEL=llama3.1:8b #
 ```
 ## Usage
 
@@ -37,20 +40,20 @@ There is an article how to use the tool.
 It may be outdated, but it is a good start: [How to Use AI Code Reviewer](https://medium.com/itnext/ai-code-reviewer-automate-your-code-reviews-137bfaa20e8b)
 - **General PR Summary (Default: Bug-Focused):**:
 ```bash
-      python review.py --repo "owner/repo" --pr 123
+      python review.py "owner/repo" 123
 ```
 - **List Issues Only Using Grok (Bug-Focused)**:
 ```bash
-   python review.py --repo "owner/repo" --pr 123 --mode issues --llm grok
+   python review.py "owner/repo" 123 --mode issues --llm grok
 ```
 - **List Issues with Verbose Feedback Using ChatGPT**:
 ```bash
-   python review.py --repo "owner/repo" --pr 123 --mode issues --llm chatgpt --deep
+   python review.py "owner/repo" 123 --mode issues --llm chatgpt --deep
 ```
 
 - **Post Comments to PR in GitHub with Gemini**:
 ```bash
-   python review.py --repo "owner/repo" --pr 123 --mode comments --llm gemini
+   python review.py "owner/repo" --pr 123 --mode comments --llm gemini
 ```
 - Add `--full-context` to include whole files, or `--debug` to see LLM requests.
 
