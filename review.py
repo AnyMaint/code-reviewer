@@ -99,7 +99,9 @@ elif args.mode == "comments":
             if file.patch:
                 file_content = repo.get_contents(file.filename, ref=pr.head.sha).decoded_content.decode("utf-8") if args.full_context else ""
                 diff = file.patch
-                chunk = f"File: {file.filename}\n{file_content}\n\nDiff:\n{diff}" if args.full_context else diff
+                # Include PR title and description in each chunk
+                file_chunk_base = f"PR Title: {pr_title}\nPR Description:\n{pr_description}\n\n"
+                chunk = file_chunk_base + (f"File: {file.filename}\n{file_content}\n\nDiff:\n{diff}" if args.full_context else f"Diff:\n{diff}")
                 file_review = llm.generate_review(chunk, args.mode)
 
                 if file_review and "no feedback" not in file_review.lower():
