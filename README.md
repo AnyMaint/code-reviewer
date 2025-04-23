@@ -1,4 +1,4 @@
-# AI Code Reviewer (1.1.0)
+# AI Code Reviewer (1.1.1)
 *Automate Pull Request Reviews with ChatGPT, Grok & Gemini*
 
 ![BSD 3-Clause License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)
@@ -50,7 +50,7 @@ It may be outdated, but it is a good start: [How to Use AI Code Reviewer](https:
 
 - **Post Comments to PR in GitHub with Gemini**:
 ```bash
-   python main.py --repo "owner/repo" --pr 123 --mode comments --llm gemini
+   python review.py --repo "owner/repo" --pr 123 --mode comments --llm gemini
 ```
 - Add `--full-context` to include whole files, or `--debug` to see LLM requests.
 
@@ -65,5 +65,5 @@ Licensed under the [BSD 3-Clause License](LICENSE) - see the [LICENSE](LICENSE) 
 
 ## Acknowledgments
 - Built with inspiration from Grok at xAI.
-- Powered by ChatGPT (OpenAI), Grok (X) and Gemini (Google).
+- Powered by ChatGPT (OpenAI), Grok (xAI) and Gemini (Google).
 
