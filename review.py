@@ -24,7 +24,6 @@ parser.add_argument("--deep", action="store_true", default=False,
 parser.add_argument("--debug", action="store_true", help="Print LLM API request details")
 parser.add_argument("--version", action="version", version=f"AI Code Reviewer {__version__}",
                     help="Show the version and exit")
-# add vcs
 parser.add_argument("--vcsp", choices=["github", "gitlab"], default="github",
                     help="Version control system provider to use: 'github' (default: github)")
 
@@ -74,8 +73,11 @@ if args.full_context:
     all_content = []
     for file in pr_files:
         if file.patch:
-            file_content = vcsp.get_file_content(args.repository, file.filename, ref=pr.head_sha).decoded_content.decode("utf-8")
-            all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}\n{'-' * 16}")
+            try:
+                file_content = vcsp.get_file_content(args.repository, file.filename, ref=pr.head_sha)
+                all_content.append(f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}\n{'-' * 16}")
+            except ValueError as e:
+                print(f"Skipping file {file.filename}: {str(e)}")
     diff_content = "\n\n".join(all_content)
 else:
     diff_content = "\n".join([file.patch + "\n" + "-" * 16 for file in pr_files if file.patch])
@@ -103,7 +105,12 @@ elif args.mode == "comments":
         head_commit = vcsp.get_commit(args.repository, pr.head_sha)
         for file in pr_files:
             if file.patch:
-                file_content = vcsp.get_file_content(args.repository, file.filename, ref=pr.head_sha).decoded_content.decode("utf-8") if args.full_context else ""
+                file_content = ""
+                if args.full_context:
+                    try:
+                        file_content = vcsp.get_file_content(args.repository, file.filename, ref=pr.head_sha)
+                    except ValueError as e:
+                        print(f"Skipping file {file.filename}: {str(e)}")
                 diff = file.patch
                 # Include PR title and description in each chunk
                 file_chunk_base = f"PR Title: {pr_title}\nPR Description:\n{pr_description}\n\n"

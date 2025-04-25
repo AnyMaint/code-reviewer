@@ -1,3 +1,4 @@
+# vcsp_interface.py
 from abc import ABC, abstractmethod
 
 class VCSPInterface(ABC):
@@ -19,8 +20,22 @@ class VCSPInterface(ABC):
         pass
 
     @abstractmethod
-    def get_file_content(self, repo_name: str, file_path: str, ref: str):
-        """Fetch file content by path and ref."""
+    def get_file_content(self, repo_name: str, file_path: str, ref: str) -> str:
+        """
+        Fetch file content by path and ref.
+
+        Args:
+            repo_name (str): The name of the repository (e.g., 'username/repo').
+            file_path (str): The path to the file in the repository.
+            ref (str): The Git reference (e.g., branch, commit SHA).
+
+        Returns:
+            str: The decoded file content as a UTF-8 string.
+
+        Raises:
+            ValueError: If the file content cannot be decoded (e.g., binary file).
+            Exception: If the file cannot be retrieved from the VCS.
+        """
         pass
 
     @abstractmethod
@@ -30,7 +45,7 @@ class VCSPInterface(ABC):
 
     @abstractmethod
     def get_commit(self, repo_name: str, commit_sha: str):
-        """Create a review comment on a pull request."""
+        """Retrieve a commit by its SHA."""
         pass
 
 class PRFile:

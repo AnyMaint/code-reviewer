@@ -1,3 +1,4 @@
+# gitlab_vcsp.py
 import os
 import gitlab
 from gitlab.exceptions import GitlabGetError, GitlabCreateError
@@ -26,7 +27,7 @@ class GitlabVCSP(VCSPInterface):
                 title=mr.title,
                 body=mr.description,
                 head_sha=mr.sha,
-                state='open' # there is no MR state in Gitlab api lib
+                state='open'  # there is no MR state in Gitlab api lib
             )
         except GitlabGetError as e:
             raise Exception(f"Failed to get GitLab MR {pr_number} in {repo_name}: {str(e)}")
@@ -40,13 +41,17 @@ class GitlabVCSP(VCSPInterface):
         except GitlabGetError as e:
             raise Exception(f"Failed to get files in GitLab MR {pr_number}: {str(e)}")
 
-    def get_file_content(self, repo_name: str, file_path: str, ref: str = None):
+    def get_file_content(self, repo_name: str, file_path: str, ref: str = None) -> str:
         try:
             project = self.client.projects.get(repo_name)
-            # Default to 'main' branch if ref is not provided
             ref = ref or 'main'
             file = project.files.get(file_path=file_path, ref=ref)
-            return file.decode().decode('utf-8')
+            content_bytes = file.decode()
+            if not content_bytes:
+                raise ValueError(f"File content is empty or not decodable for {file_path}")
+            return content_bytes.decode("utf-8")
+        except UnicodeDecodeError as e:
+            raise ValueError(f"Failed to decode file content for {file_path} (possibly binary): {str(e)}")
         except GitlabGetError as e:
             raise Exception(f"Failed to get file content for {file_path} in {repo_name}: {str(e)}")
 

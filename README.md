@@ -1,4 +1,4 @@
-# AI Code Reviewer (1.1.1)
+# AI Code Reviewer (1.2.0)
 *Automate Pull Request Reviews with ChatGPT, Grok & Gemini*
 
 ![BSD 3-Clause License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)
@@ -30,7 +30,7 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
    export OPENAI_API_KEY="your-openai-key"  # For ChatGPT
    export GOOGLE_API_KEY="your-google-key"  # For Gemini
    export XAI_API_KEY="your-x-key"     # For Grok
-
+   export GITLAB_TOKEN="your-gitlab-token" # For GitLab
    export OPENAI_BASE_URL="http://localhost:11434/v1" # For ollama or self-managged instance of OpenAI-compatible LLM.
    export OPENAI_MODEL=llama3.1:8b #
 ```
@@ -38,9 +38,9 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
 
 There is an article how to use the tool. 
 It may be outdated, but it is a good start: [How to Use AI Code Reviewer](https://medium.com/itnext/ai-code-reviewer-automate-your-code-reviews-137bfaa20e8b)
-- **General PR Summary (Default: Bug-Focused):**:
+- **General PR Summary (Default: Bug-Focused) using Gitlab:**:
 ```bash
-      python review.py "owner/repo" 123
+      python review.py "owner/repo" 123 --vcsp gitlab --mode general
 ```
 - **List Issues Only Using Grok (Bug-Focused)**:
 ```bash

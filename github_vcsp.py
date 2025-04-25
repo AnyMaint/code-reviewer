@@ -36,19 +36,26 @@ class GithubVCSP(VCSPInterface):
         except GithubException as e:
             raise Exception(f"Failed to get files in GitHub PR {pr_number}: {str(e)}")
 
-    def get_file_content(self, repo_name: str, file_path: str, ref: str = None):
+    def get_file_content(self, repo_name: str, file_path: str, ref: str = None) -> str:
         try:
             content = self.client.get_repo(repo_name).get_contents(file_path, ref=ref)
+            if content.decoded_content is None:
+                raise ValueError(f"File content is not decodable (possibly binary) for {file_path}")
             return content.decoded_content.decode('utf-8')
-        except GithubException as e:
-            raise Exception(f"Failed to get file content for {file_path} in {repo_name}: {str(e)}")
+        except UnicodeDecodeError as e:
+            raise ValueError(f"Failed to decode file content for {file_path} (possibly binary): {str(e)}")
         except GithubException as e:
             raise Exception(f"Failed to get file content for {file_path} in {repo_name}: {str(e)}")
 
-    def create_review_comment(self, repo_name: str, pr_number: str, commit: str, file_path: str, line: int, comment: str, side: str):
+    def create_review_comment(self, repo_name: str, commit: str, file_path: str, line: int, comment: str, side: str):
         try:
-            pr = self.client.get_repo(repo_name).get_pull(pr_number)
-            pr.create_review_comment(body=comment, commit=commit, path=file_path, position=line, side=side)
+            repo = self.client.get_repo(repo_name)
+            commit_obj = repo.get_commit(commit)
+            prs = commit_obj.get_pulls()
+            if not prs.totalCount:
+                raise Exception(f"No pull request found for commit {commit} in {repo_name}")
+            pr = prs[0]
+            pr.create_review_comment(body=comment, commit=commit_obj, path=file_path, position=line, side=side)
             return True
         except GithubException as e:
             raise Exception(f"Failed to create GitHub review comment: {str(e)}")
