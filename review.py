@@ -7,6 +7,7 @@ from chatgpt_llm import ChatGPTLLM
 from gemini_llm import GeminiLLM
 from github_vcsp import GithubVCSP
 from gitlab_vcsp import GitlabVCSP
+from bitbucket_vcsp import BitbucketVCSP
 from grok_llm import GrokLLM
 
 # Parse command-line arguments
@@ -43,6 +44,7 @@ llm = llm_map[args.llm](debug=args.debug, deep=args.deep)
 version_control_system_map = {
     "github": GithubVCSP,
     "gitlab": GitlabVCSP,
+    "bitbucket": BitbucketVCSP
 }
 vcsp = version_control_system_map[args.vcsp]()
 

@@ -27,6 +27,9 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
 3. Set environment variables:
 ```bash
    export GITHUB_TOKEN="your-github-token"  # 
+   export BITBUCKET_APP_PASSWORD="your-bitbucket-app-password"  # 
+   export BITBUCKET_USERNAME="your-bitbucket-username"  # 
+   export BITBUCKET_WORKSPACE="your-bitbucket-workspace"  # by default username will reused
    export OPENAI_API_KEY="your-openai-key"  # For ChatGPT
    export GOOGLE_API_KEY="your-google-key"  # For Gemini
    export XAI_API_KEY="your-x-key"     # For Grok
