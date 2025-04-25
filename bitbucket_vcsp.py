@@ -84,27 +84,53 @@ class BitbucketVCSP(VCSPInterface):
             logger.error("Error parsing diff text: %s", e)
             raise
 
-    def get_file_content(self, repo_name: str, file_path: str, ref: str):
+    def get_file_content(self, repo_name: str, file_path: str, ref: str) -> str:
         try:
             text = self.client.get_file_from_repo(self.workspace, repo_name, file_path, ref)
+            # Ensure text is a string; if it's bytes, decode it
+            if isinstance(text, bytes):
+                return text.decode("utf-8")
+            elif isinstance(text, str):
+                # Verify the string is valid UTF-8 by encoding and decoding
+                text.encode("utf-8")  # This will raise UnicodeEncodeError if invalid
+                return text
+            else:
+                raise ValueError(f"Unexpected file content type for {file_path}: {type(text)}")
+        except UnicodeDecodeError as e:
+            logger.error("Failed to decode file content for %s@%s:%s: %s", repo_name, ref, file_path, e)
+            raise ValueError(f"Failed to decode file content for {file_path} (possibly binary): {str(e)}")
+        except UnicodeEncodeError as e:
+            logger.error("File content is not a valid UTF-8 string for %s@%s:%s: %s", repo_name, ref, file_path, e)
+            raise ValueError(f"File content is not a valid UTF-8 string for {file_path}: {str(e)}")
         except Exception as e:
             logger.error("Error fetching file content %s@%s:%s: %s", repo_name, ref, file_path, e)
-            raise
-        return SimpleNamespace(decoded_content=text.encode('utf-8'))
+            raise Exception(f"Failed to get file content for {file_path} in {repo_name}: {str(e)}")
 
     def create_review_comment(self, repo_name: str, commit: str, file_path: str, line: int, comment: str, side: str):
+        if side and side != "RIGHT":
+            logger.warning("Bitbucket API does not support 'side' parameter for comments; ignoring side=%s", side)
         try:
+            # Fetch PRs associated with the commit
+            prs = self.client.get_pull_requests(self.workspace, repo_name, state="ALL", fields=['id'])
+            pr_id = None
+            for pr in prs:
+                source_commit = pr.get('source', {}).get('commit', {}).get('hash')
+                if source_commit == commit:
+                    pr_id = pr['id']
+                    break
+            if not pr_id:
+                raise Exception(f"No pull request found for commit {commit} in {repo_name}")
             return self.client.create_pull_request_comment(
                 self.workspace,
                 repo_name,
-                self.pr_number,
+                pr_id,
                 file_path,
                 line,
                 comment
             )
         except Exception as e:
             logger.error("Error posting review comment on %s line %s: %s", file_path, line, e)
-            raise
+            raise Exception(f"Failed to create Bitbucket review comment: {str(e)}")
 
     def get_commit(self, repo_name: str, commit_sha: str) -> Commit:
         try:
