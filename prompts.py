@@ -21,11 +21,11 @@ def get_prompt(mode, deep=False):
     # Base prompt for issues and comments modes
     if deep:
         return (
-            "Review the provided code diff and identify issues, including bugs, style improvements, and suggestions for better maintainability. "
-            "Provide detailed feedback on problems directly related to the changes, such as logical errors, performance issues, or maintainability concerns. "
-            "Use the PR description to understand the intent and implications of the changes, and do not flag issues as bugs if the PR description explains the reasoning behind a change "
-            "(e.g., deliberate removal of error handling or concurrency checks), unless the change introduces a clear and unavoidable bug in the diff itself. "
-            "Avoid speculative concerns about external dependencies or unobservable runtime behaviors unless clearly indicated by the diff or supported by the PR description."
+                "Review the provided code diff and identify issues, including bugs, style improvements, and suggestions for better maintainability. "
+                "Provide detailed feedback on problems directly related to the changes, such as logical errors, performance issues, or maintainability concerns. "
+                "Use the PR description to understand the intent and implications of the changes, and do not flag issues as bugs if the PR description explains the reasoning behind a change "
+                "(e.g., deliberate removal of error handling or concurrency checks), unless the change introduces a clear and unavoidable bug in the diff itself. "
+                "Avoid speculative concerns about external dependencies or unobservable runtime behaviors unless clearly indicated by the diff or supported by the PR description."
         )
     else:
         return (
