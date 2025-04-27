@@ -41,16 +41,17 @@ The objective was to simulate realistic coding errors, including concurrency bug
 
 ---
 
-## 📈 Token and Cost Comparison
+## 📈 Token and Cost Comparison for ~40 calls each
 
 | Metric | GPT-4o-mini | Grok-3-mini-beta |
 |:-------|:------------|:-----------------|
 | **Input Tokens** | ~120k | ~90k |
 | **Output Tokens** | ~18k | ~23k |
 | **Total Tokens** | ~138k | ~113k |
-| **Cost** | ~$0.03 | ~$0.04 |
+| **Total Cost** | ~$0.03 | ~$0.04 |
+| **Cost of single review** | ~$0.00072 | ~$0.00098 |
 
-- price for **Grok-3-mini-beta** is comparable to GPT-4o-mini.
+- price for **Grok-3-mini-beta** is comparable to **GPT-4o-mini**.
 - **Grok-3-mini-beta** generated **more detailed actionable fixes**, whereas **GPT-4o-mini** provided **more general section-based suggestions**.
 
 ---
