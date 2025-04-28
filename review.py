@@ -25,7 +25,7 @@ parser.add_argument("--deep", action="store_true", default=False,
 parser.add_argument("--debug", action="store_true", help="Print LLM API request details")
 parser.add_argument("--version", action="version", version=f"AI Code Reviewer {__version__}",
                     help="Show the version and exit")
-parser.add_argument("--vcsp", choices=["github", "gitlab"], default="github",
+parser.add_argument("--vcsp", choices=["github", "gitlab", "bitbucket"], default="github",
                     help="Version control system provider to use: 'github' (default: github)")
 
 args = parser.parse_args()
@@ -103,7 +103,7 @@ elif args.mode == "issues":
 
 elif args.mode == "comments":
     print(f"Code Issues:\n{review_text}")
-    if pr.state == "open":
+    if pr.state.lower() == "open":
         head_commit = vcsp.get_commit(args.repository, pr.head_sha)
         for file in pr_files:
             if file.patch:
@@ -121,7 +121,7 @@ elif args.mode == "comments":
 
                 if file_review and "no feedback" not in file_review.lower():
                     line_num = get_file_line_from_diff(diff)
-                    comment = f"AI Issue: {file_review}"
+                    comment = f"AI Issue by {args.llm} full-context is {args.full_context}, deep is {args.deep}: {file_review}"
                     try:
                         vcsp.create_review_comment(
                             repo_name=args.repository,
