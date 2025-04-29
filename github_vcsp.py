@@ -55,7 +55,7 @@ class GithubVCSP(VCSPInterface):
             if not prs.totalCount:
                 raise Exception(f"No pull request found for commit {commit} in {repo_name}")
             pr = prs[0]
-            pr.create_review_comment(body=comment, commit=commit_obj, path=file_path, position=line, side=side)
+            pr.create_review_comment(body=comment, commit=commit_obj, path=file_path, position=line)
             return True
         except GithubException as e:
             raise Exception(f"Failed to create GitHub review comment: {str(e)}")
