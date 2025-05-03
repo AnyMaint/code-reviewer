@@ -3,8 +3,19 @@ All notable changes to **AI Code Reviewer** will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to semantic versioning.
 
+
+## [2.0] - 2025-05-02
+### Added
+- Unit tests
+- Tests for specific bugs and issues
+- Separate script for PR summary (`describe-pr.py`)
+### Changed
+- LLM interface - prompt only
+- Introduced reviewer class, which creates prompts
+- LLM output in JSON
+
 ## [1.2] - 2025-04-25
-### Addded
+### Added
 - Gitlab support
 - Bitbucket support
 - Generic VCS interface
