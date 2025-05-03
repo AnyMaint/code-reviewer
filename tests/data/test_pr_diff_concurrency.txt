@@ -1,0 +1,11 @@
+--- a/src/main/java/com/example/Counter.java
++++ b/src/main/java/com/example/Counter.java
+@@ -3,5 +3,6 @@
+ public class Counter {
+     private Integer count = 0;
+
+     public void increment() {
++        synchronized (count) { count++; }
+         count++;
+     }
+ }

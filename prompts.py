@@ -1,39 +1,40 @@
-# prompts.py
-
-def get_prompt(mode, deep=False):
+def get_prompt(deep: bool = False) -> str:
     """
-    Returns the prompt for the given mode and deep flag.
+    Returns the prompt for the given mode and deep flag, instructing LLM to return JSON output.
 
     Args:
-        mode (str): The mode ('general', 'issues', 'comments').
-        deep (bool): Whether deep mode is enabled (verbose feedback).
+        mode: The mode ('issues', 'comments').
+        deep: Whether deep mode is enabled (verbose feedback).
 
     Returns:
-        str: The prompt to use for the LLM.
+        The prompt to use for the LLM.
     """
-    if mode == "general":
-        return (
-            "Review the provided pull request details, including the PR title, description, and code diffs. "
-            "Provide a high-level summary of the changes, explaining their purpose and overall impact. "
-            "Use the PR description to understand the intent of the changes, but focus on summarizing the diffs."
-        )
+    base_json_schema = (
+        "Return a JSON array where each element represents feedback for a file's diff. "
+        "Each element must have the following structure: "
+        "{"
+        "  'file': string (the file name), "
+        "  'line': integer (the line number of the change, or 1 if undetermined), "
+        "  'comments': array of strings (specific feedback or issues for the change)"
+        "}. "
+        "If no issues are found for a file, include an element with an empty 'comments' array. "
+        "If the diff is empty or missing, return an empty array. "
+        "Ensure the response is valid JSON."
+    )
 
-    # Base prompt for issues and comments modes
     if deep:
         return (
-            "Review the provided code diff and identify issues, including bugs, style improvements, and suggestions for better maintainability. "
-            "Provide detailed feedback on problems directly related to the changes, such as logical errors, performance issues, or maintainability concerns. "
-            "Use the PR description to understand the intent and implications of the changes, and do not flag issues as bugs if the PR description explains the reasoning behind a change "
-            "(e.g., deliberate removal of error handling or concurrency checks), unless the change introduces a clear and unavoidable bug in the diff itself. "
-            "Avoid speculative concerns about external dependencies or unobservable runtime behaviors unless clearly indicated by the diff or supported by the PR description."
+            "Review the provided code diffs and identify issues, including bugs, style improvements, and suggestions for better maintainability. "
+            "For each file, provide detailed feedback on problems directly related to the changes, such as logical errors, performance issues, or maintainability concerns. "
+            "Use the PR description to understand the intent and do not flag issues if the PR description explains the reasoning behind a change, unless the change introduces a clear bug. "
+            f"{base_json_schema} "
+            "For each file, include specific issues or suggestions in the 'comments' array, referencing the modified lines."
         )
     else:
         return (
-            "Review the provided code diff and identify critical bugs directly visible in the modified lines, such as syntax errors, null-pointer exceptions, or logical errors "
-            "that are explicitly caused by the changes and lead to unavoidable errors in the modified code. "
-            "Use the PR description to understand the intent and implications of the changes, and do not flag issues if the PR description explains the reasoning behind a change "
-            "(e.g., deliberate removal of error handling or concurrency checks), unless the change introduces a clear and unavoidable bug in the diff itself. "
-            "Do not make assumptions about code outside the diff, such as variable definitions, external logic, or potential runtime behaviors. "
-            "Do not provide general suggestions, style recommendations, documentation advice, or speculative concerns about issues not directly observable in the diff "
-            "(e.g., hypothetical runtime failures contradicted by the PR description)."
+            "Review the provided code diffs and identify critical bugs directly visible in the modified lines, such as syntax errors, null-pointer exceptions, or logical errors. "
+            "Use the PR description to understand the intent and do not flag issues if the PR description explains the reasoning behind a change, unless the change introduces a clear bug. "
+            "Do not provide general suggestions or speculative concerns. "
+            f"{base_json_schema} "
+            "For each file, include only critical bugs in the 'comments' array, referencing the modified lines."
         )
