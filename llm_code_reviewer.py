@@ -128,9 +128,9 @@ class LLMCodeReviewer:
             
             # Adjust line numbers for reviews
             for review in review_result.reviews:
-                if review.file in file_patches:            
-                    # if review.line == 1 and review.file in file_patches:
-                    #     review.line = self._get_file_line_from_diff(file_patches[review.file])        
+                # if review.line == 1 and review.file in file_patches:
+                #     review.line = self._get_file_line_from_diff(file_patches[review.file])       
+                if review.file in file_patches:             
                     if review.file not in added_line_cache:
                         added_line_cache[review.file] = self.get_all_added_line_numbers(file_patches[review.file])
                     if added_line_cache[review.file]:
