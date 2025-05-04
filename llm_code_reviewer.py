@@ -52,28 +52,19 @@ class LLMCodeReviewer:
 
         return result
 
-    def _get_file_line_from_diff(self, diff: str, occurrence_index: int = 0) -> int:
-        """
-        Parses a unified diff and returns the new file line number of the first added line
-        in the N-th hunk (occurrence_index).
-        """
+    def _get_file_line_from_diff(self, diff: str) -> int:
+        """Parse a diff to find the line number of the first added line."""
         lines = diff.splitlines()
-        hunk_index = -1
-
         for i, line in enumerate(lines):
             if line.startswith("@@"):
-                hunk_index += 1
-                if hunk_index == occurrence_index:
-                    match = re.match(r"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@", line)
-                    if match:
-                        new_start = int(match.group(2))  # Start line in the new file
-                        for j, diff_line in enumerate(lines[i + 1:], start=1):
-                            if diff_line.startswith("@@"):
-                                break  # next hunk starts
-                            if diff_line.startswith("+") and not diff_line.startswith("+++"):
-                                return new_start + j - 1
-        return 1  # fallback
-
+                match = re.match(r"@@ -(\d+),(\d+) \+(\d+),(\d+) @@", line)
+                if match:
+                    new_start = int(match.group(3))  # Start line in the new file
+                    for j, diff_line in enumerate(lines[i+1:], start=1):
+                        if diff_line.startswith("+") and not diff_line.startswith("+++"):
+                            return new_start + j - 1  # Adjust for zero-based counting
+        return 1  # Fallback if no valid line found
+    
     def review_pr(self, pr: Any, repository: str, pr_number: int) -> LLMReviewResult:
         """
         Generate a code review for the given PR, returning JSON-based results.
@@ -137,7 +128,9 @@ class LLMCodeReviewer:
             
             # Adjust line numbers for reviews
             for review in review_result.reviews:
-                if review.file in file_patches:                    
+                if review.file in file_patches:            
+                    # if review.line == 1 and review.file in file_patches:
+                    #     review.line = self._get_file_line_from_diff(file_patches[review.file])        
                     if review.file not in added_line_cache:
                         added_line_cache[review.file] = self.get_all_added_line_numbers(file_patches[review.file])
                     if added_line_cache[review.file]:
