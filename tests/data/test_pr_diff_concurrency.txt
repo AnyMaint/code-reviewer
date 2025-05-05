@@ -1,6 +1,6 @@
 --- a/src/main/java/com/example/Counter.java
 +++ b/src/main/java/com/example/Counter.java
-@@ -3,5 +3,6 @@
+@@ -3,7 +3,8 @@
  public class Counter {
      private Integer count = 0;
 

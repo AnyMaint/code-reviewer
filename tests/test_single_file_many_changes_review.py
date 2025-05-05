@@ -26,32 +26,35 @@ def mock_vcsp(mocker):
 PR_CONFIGS = [
     {
         "pr_filename": "src/main/java/com/example/UserService.java",
-        "diff_file_name": "test_pr_diff.txt",
+        "diff_file_name": "ts_diff.patch",
         "expected_keywords": ["string", "==", "equals"],
         "pr_title": "Add admin role check",
-        "pr_body": "Check if user is admin and set role"
+        "pr_body": "Check if user is admin and set role",
+        "pr_line": 3
     },
     {
         "pr_filename": "src/main/java/com/example/FileProcessor.java",
         "diff_file_name": "test_pr_diff_exception.txt",
         "expected_keywords": ["exception", "catch", "swallow", "rethrow", "handle"],
         "pr_title": "Add error handling for file processing",
-        "pr_body": "Handle file input errors gracefully"
+        "pr_body": "Handle file input errors gracefully",
+        "pr_line": 3
     },
     {
         "pr_filename": "src/main/java/com/example/Counter.java",
         "diff_file_name": "test_pr_diff_concurrency.txt",
         "expected_keywords": ["synchronized", "non-final", "final", "concurrency", "thread", "lock"],
         "pr_title": "Add thread-safe increment",
-        "pr_body": "Ensure increment operation is thread-safe"
+        "pr_body": "Ensure increment operation is thread-safe",
+        "pr_line": 7
     }
 ]
 @pytest.mark.parametrize(
-    "llm_class, llm_name",
+    "llm_class, llm_name, env_var",
     [
-        (ChatGPTLLM, "ChatGPT"),
-        (GeminiLLM, "Gemini"),
-        (GrokLLM, "Grok")
+        (ChatGPTLLM, "ChatGPT","OPENAI_API_KEY"),
+        (GeminiLLM, "Gemini","GOOGLE_API_KEY"),
+        (GrokLLM, "Grok","XAI_API_KEY")
     ],
     ids=["chatgpt", "gemini", "grok"]
 )
@@ -60,15 +63,11 @@ PR_CONFIGS = [
     PR_CONFIGS,
     ids=[f"pr-{config['diff_file_name'].replace('.txt', '')}" for config in PR_CONFIGS]
 )
-def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, pr_config):
+def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_config):
     """Test LLMCodeReviewer with real LLMs on Java PRs with logical bugs."""
     # Skip if API key is not set
-    if llm_name == "ChatGPT" and not os.getenv("OPENAI_API_KEY"):
-        pytest.skip("OPENAI_API_KEY not set")
-    if llm_name == "Gemini" and not os.getenv("GOOGLE_API_KEY"):
-        pytest.skip("GOOGLE_API_KEY not set")
-    if llm_name == "Grok" and not os.getenv("XAI_API_KEY"):
-        pytest.skip("XAI_API_KEY not set")
+    if not os.getenv(env_var):
+        pytest.skip(env_var+" not set")
 
     # Extract PR configuration
     pr_filename = pr_config["pr_filename"]
@@ -76,6 +75,7 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, pr_config):
     expected_keywords = pr_config["expected_keywords"]
     pr_title = pr_config["pr_title"]
     pr_body = pr_config["pr_body"]
+    pr_line = pr_config["pr_line"]
 
     # Create PR object
     pr = PR(title=pr_title, body=pr_body, head_sha="abc123", state="open")
@@ -114,7 +114,7 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, pr_config):
     assert len(result.reviews) > 0, f"{llm_name} did not return any reviews"
     found_bug = False
     for review in result.reviews:
-        if review.file == pr_filename:
+        if review.file == pr_filename and review.line == pr_line:
             for comment in review.comments:
                 comment_lower = comment.lower()
                 if any(keyword in comment_lower for keyword in expected_keywords):
