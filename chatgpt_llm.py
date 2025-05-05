@@ -2,6 +2,7 @@ import logging
 import os
 import openai
 from llm_interface import LLMInterface
+from config import LOG_CHAR_LIMIT
 
 class ChatGPTLLM(LLMInterface):
     def __init__(self):
@@ -14,8 +15,8 @@ class ChatGPTLLM(LLMInterface):
     def answer(self, system_prompt: str, user_prompt: str, content: str) -> str:
         """Generate a JSON response for the given prompts and content."""
         logging.debug(
-            f"ChatGPT Request:\nModel: {self.model}\nSystem Prompt: {system_prompt[:500]}..."
-            f"\nUser Prompt: {user_prompt[:500]}...\nContent: {content[:500]}... (truncated)"
+            f"ChatGPT Request:\nModel: {self.model}\nSystem Prompt: {system_prompt[:LOG_CHAR_LIMIT]}..."
+            f"\nUser Prompt: {user_prompt[:LOG_CHAR_LIMIT]}...\nContent: {content[:LOG_CHAR_LIMIT]}... (truncated)"
         )
 
         try:
@@ -28,7 +29,7 @@ class ChatGPTLLM(LLMInterface):
                 temperature=0.0,
             )
             raw_response = response.choices[0].message.content.strip()
-            logging.debug(f"Raw Response:\n{raw_response[:500]}... (truncated)")
+            logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")
             return raw_response
         except Exception as e:
             print(f"Error communicating with ChatGPT API: {str(e)}")

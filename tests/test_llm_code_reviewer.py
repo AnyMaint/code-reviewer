@@ -4,11 +4,12 @@ from llm_code_reviewer import LLMCodeReviewer
 from models import LLMReviewResult, CodeReview
 from llm_interface import LLMInterface
 from vcsp_interface import PR, PRFile
+from pathlib import Path
 import logging
 
 # Configure logging for debugging
 logging.basicConfig(level=logging.DEBUG)
-
+TEST_DATA_PATH = Path(__file__).parent / "data"
 
 # Fixture for mocked VCS and LLM
 @pytest.fixture
@@ -171,3 +172,16 @@ def test_get_file_line_from_diff_empty_lines(mock_vcsp, tmp_path):
     reviewer = LLMCodeReviewer(llm=Mock(), vcsp=mock_vcsp)
     line = reviewer._get_file_line_from_diff(diff_file.read_text(encoding='utf-8'))
     assert line == 43
+
+def test_get_all_added_line_numbers_from_ts_diff(tmp_path):
+        
+        diff_file = TEST_DATA_PATH / "ts_diff.patch"
+        assert diff_file.exists(), f"Diff file not found: {diff_file}"
+        logging.debug(f"Using diff file: {diff_file}")
+        
+        reviewer = LLMCodeReviewer(llm=Mock(), vcsp=mock_vcsp)
+        added_lines = reviewer.get_all_added_line_numbers(diff_file.read_text(encoding='utf-8'))
+
+        # Validate expected added lines
+        assert added_lines == [71, 134, 138, 140, 141], f"Unexpected added lines: {added_lines}"
+            

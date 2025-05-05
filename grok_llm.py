@@ -2,6 +2,7 @@ import logging
 import os
 import requests
 from llm_interface import LLMInterface
+from config import LOG_CHAR_LIMIT
 
 class GrokLLM(LLMInterface):
     def __init__(self):
@@ -20,8 +21,8 @@ class GrokLLM(LLMInterface):
     def answer(self, system_prompt: str, user_prompt: str, content: str) -> str:
         """Generate a response for the given prompts and content."""
         logging.debug(
-            f"Grok Request:\nModel: {self.model}\nSystem Prompt: {system_prompt[:500]}..."
-            f"\nUser Prompt: {user_prompt[:500]}...\nContent: {content[:500]}... (truncated)"
+            f"Grok Request:\nModel: {self.model}\nSystem Prompt: {system_prompt[:LOG_CHAR_LIMIT]}..."
+            f"\nUser Prompt: {user_prompt[:LOG_CHAR_LIMIT]}...\nContent: {content[:LOG_CHAR_LIMIT]}... (truncated)"
         )
 
         payload = {
@@ -38,7 +39,7 @@ class GrokLLM(LLMInterface):
             response.raise_for_status()
             result = response.json()
             raw_response = result["choices"][0]["message"]["content"].strip()
-            logging.debug(f"Raw Response:\n{raw_response[:500]}... (truncated)")
+            logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")
             return raw_response
         except requests.exceptions.HTTPError as e:
             logging.error(f"Grok API HTTP Error: {e.response.text}")
