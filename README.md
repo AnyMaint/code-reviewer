@@ -7,7 +7,7 @@
 
 Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anymaint.com) to streamline code reviews using large language models (LLMs). Catch issues, summarize PRs, and even comment directly on GitHub—all powered by ChatGPT, Grok or Gemini. We’re open-sourcing this to share with the community and grow our startup’s footprint!
 
-## Features
+## Features for Tania
 - **General Overview**: Get a high-level summary of what a PR does, based on its description and changes.
 - **Issue Detection**: Identify potential problems in diffs (ignores unchanged code by default).
 - **PR Comments**: Automatically post issues as inline comments on open pull requests.
