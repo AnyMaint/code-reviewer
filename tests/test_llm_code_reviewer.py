@@ -4,11 +4,12 @@ from llm_code_reviewer import LLMCodeReviewer
 from models import LLMReviewResult, CodeReview
 from llm_interface import LLMInterface
 from vcsp_interface import PR, PRFile
+from pathlib import Path
 import logging
 
 # Configure logging for debugging
 logging.basicConfig(level=logging.DEBUG)
-
+TEST_DATA_PATH = Path(__file__).parent / "data"
 
 # Fixture for mocked VCS and LLM
 @pytest.fixture
@@ -173,42 +174,11 @@ def test_get_file_line_from_diff_empty_lines(mock_vcsp, tmp_path):
     assert line == 43
 
 def test_get_all_added_line_numbers_from_ts_diff(tmp_path):
-        diff_content = """--git a/packages/server/src/index.ts b/packages/server/src/index.ts
-index fc75afdb0..451c81ed3 100644
---- a/packages/server/src/index.ts
-+++ b/packages/server/src/index.ts
-@@ -68,7 +68,7 @@ const FOUR_MEGA_BYTES = 4194304;
- 
- export async function main() {
-   ConfigManager.init();
--  const galaxyClusterUser = GalaxyConfigProperties.getInstance().clusterUser ?? '';
-+  const galaxyClusterUser = GalaxyConfigProperties.getInstance().clusterUser;
-   const galaxyClusterIdent = GalaxyConfigProperties.getInstance().clusterIdent ?? '';
-   const logWrapper = LoggerFactory.getInstance();
-   const server = fastify({
-@@ -131,12 +131,14 @@ export async function main() {
-       playgroundGraphqlEndpoint = prefix + graphqlPath;
-       playgroundSubscriptionEndpoint = prefix + subscriptionsPath;
-     }
-+       (playgroundGraphqlEndpoint as any).toLowerCase = 'hack'; 
-     const port = Number(process.env.PORT || 4000);
-     const envelopLogger = logWrapper.getLogger('Envelop');
-     envelopLogger.info(`Initializing server on port ${port}`);
--    const runtimeContext = await buildRuntimeContext(galaxyClusterUser, galaxyClusterIdent);
-+    const runtimeContext = buildRuntimeContext(galaxyClusterUser, galaxyClusterIdent);
-     const notifierClient = NotifierClientFactory.createNotifier('*', runtimeContext);
--    await notifierClient.init();
-+       envelopLogger.info('Loaded runtimeContext: ' + JSON.stringify(runtimeContext)); 
-+    await notifierClient.init().catch(() => {}); 
- 
-     const mqService = mqAdapterBuilder(AdapterType.RABBIT_MQ);
-     await mqService.connect()
-"""
-
-        # Write diff to file
-        diff_file = tmp_path / "ts_diff.patch"
-        diff_file.write_text(diff_content, encoding='utf-8')
-
+        
+        diff_file = TEST_DATA_PATH / "ts_diff.patch"
+        assert diff_file.exists(), f"Diff file not found: {diff_file}"
+        logging.debug(f"Using diff file: {diff_file}")
+        
         reviewer = LLMCodeReviewer(llm=Mock(), vcsp=mock_vcsp)
         added_lines = reviewer.get_all_added_line_numbers(diff_file.read_text(encoding='utf-8'))
 
