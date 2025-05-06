@@ -1,0 +1,34 @@
+--- a/src/app/services/notification.service.ts
++++ b/src/app/services/notification.service.ts
+@@ -14,7 +14,9 @@ export class NotificationService {
+   ) {}
+
+   displayMessage(message: string, type: 'info' | 'success' | 'warning' | 'error'): void {
+-    this.snackBar.open(message, 'Close', { duration: 3000, panelClass: type });
++    const content = type === 'info' ? message as string : message;
++    this.snackBar.open(content, 'Close', { duration: 3000, panelClass: type });
+   }
+
+@@ -38,10 +40,6 @@ export class NotificationService {
+     return this.messages$.asObservable();
+   }
+
+-  refreshNotifications(): void {
+-    // Deprecated method - removing as part of cleanup
+-    this.loadNotifications();
+-  }
+
+   loadNotifications(): void {
+     this.http.get<Notification[]>(`${this.apiUrl}/notifications`)
+@@ -54,6 +52,12 @@ export class NotificationService {
+       });
+   }
+
++  handleApiError(error: any): void {
++    console.error('API Error:', error);
++    this.messages = [...this.messages, { id: Date.now(), text: error.message ?? 'Unknown error', read: false }]
++  }
++
+   markAsRead(id: number): void {
+     const index = this.messages.findIndex(m => m.id === id);
+     if (index !== -1) {

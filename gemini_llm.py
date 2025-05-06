@@ -4,6 +4,7 @@ import google.generativeai as genai
 from llm_interface import LLMInterface
 from config import LOG_CHAR_LIMIT
 
+
 class GeminiLLM(LLMInterface):
     def __init__(self):
         api_key = os.getenv("GOOGLE_API_KEY")
@@ -15,7 +16,8 @@ class GeminiLLM(LLMInterface):
     def answer(self, system_prompt: str, user_prompt: str, content: str) -> str:
         """Generate a response for the given prompts and content."""
         full_input = f"{system_prompt}\n\n{user_prompt}\n\n{content}" if user_prompt else f"{system_prompt}\n\n{content}"
-        logging.debug(f"Gemini Request:\nModel: {self.model.model_name}\nContent: {full_input[:LOG_CHAR_LIMIT]}... (truncated)")
+        logging.debug(
+            f"Gemini Request:\nModel: {self.model.model_name}\nContent: {full_input[:LOG_CHAR_LIMIT]}... (truncated)")
 
         try:
             response = self.model.generate_content(

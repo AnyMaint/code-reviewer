@@ -89,18 +89,7 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
     # Setup mock VCS to return PR file
     mock_file = PRFile(filename=pr_filename, patch=diff_content)
     mock_vcsp.get_files_in_pr.return_value = [mock_file]
-    mock_vcsp.get_file_content.return_value = (
-        """public class UserService {
-    public String getUserName(User user) {
-        return user.getName();
-    }
-}""" if pr_filename.endswith("UserService.java") else
-        """public class FileProcessor {
-    public void processFile(String path) throws IOException {
-        // Processing code
-    }
-}"""
-    )
+
 
     # Initialize LLM and reviewer
     llm = llm_class()

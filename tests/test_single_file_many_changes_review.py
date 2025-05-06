@@ -1,14 +1,16 @@
-import pytest
-import os
 import logging
-from unittest.mock import Mock
+import os
 from pathlib import Path
-from llm_code_reviewer import LLMCodeReviewer
-from vcsp_interface import PR, PRFile
-from models import LLMReviewResult
+from unittest.mock import Mock
+
+import pytest
+
 from chatgpt_llm import ChatGPTLLM
 from gemini_llm import GeminiLLM
 from grok_llm import GrokLLM
+from llm_code_reviewer import LLMCodeReviewer
+from models import LLMReviewResult
+from vcsp_interface import PR, PRFile
 
 # Configure logging for debugging
 logging.basicConfig(level=logging.DEBUG)
@@ -16,45 +18,47 @@ logging.basicConfig(level=logging.DEBUG)
 # Base path for test data
 TEST_DATA_PATH = Path(__file__).parent / "data"
 
+
 # Fixture for mocked VCS
 @pytest.fixture
 def mock_vcsp(mocker):
     vcsp = Mock()
     return vcsp
 
+
 # PR configurations
 PR_CONFIGS = [
     {
-        "pr_filename": "src/main/java/com/example/UserService.java",
-        "diff_file_name": "ts_diff.patch",
-        "expected_keywords": ["string", "==", "equals"],
-        "pr_title": "Add admin role check",
-        "pr_body": "Check if user is admin and set role",
-        "pr_line": 3
+        "pr_filename": "src/app/services/notification.service.ts",
+        "diff_file_name": "user.service-2.diff",
+        "expected_keywords": {17: ["xss", "sanitize", "sanitization"], 55: ["error handling", "mutation"]},
+        "pr_title": "Enhance notification handling and optimize auth workflows",
+        "pr_body": """
+        Modified the notification display logic to handle HTML content (contains bug)
+Removed deprecated token refresh approach
+Added error handling for API responses
+""",
     },
     {
-        "pr_filename": "src/main/java/com/example/FileProcessor.java",
-        "diff_file_name": "test_pr_diff_exception.txt",
-        "expected_keywords": ["exception", "catch", "swallow", "rethrow", "handle"],
-        "pr_title": "Add error handling for file processing",
-        "pr_body": "Handle file input errors gracefully",
-        "pr_line": 3
+        "pr_filename": "src/app/services/auth.service.ts",
+        "diff_file_name": "user.service.diff",
+        "expected_keywords": {38: ["semicolon"], 50: ["unused", "magic string"]},
+        "pr_title": "Update authentication service and add profile caching",
+        "pr_body": """
+        - Removed outdated debug console log statement
+- Updated token comparison logic for better security
+- Added new method for user profile caching
+""",
     },
-    {
-        "pr_filename": "src/main/java/com/example/Counter.java",
-        "diff_file_name": "test_pr_diff_concurrency.txt",
-        "expected_keywords": ["synchronized", "non-final", "final", "concurrency", "thread", "lock"],
-        "pr_title": "Add thread-safe increment",
-        "pr_body": "Ensure increment operation is thread-safe",
-        "pr_line": 7
-    }
 ]
+
+
 @pytest.mark.parametrize(
     "llm_class, llm_name, env_var",
     [
-        (ChatGPTLLM, "ChatGPT","OPENAI_API_KEY"),
-        (GeminiLLM, "Gemini","GOOGLE_API_KEY"),
-        (GrokLLM, "Grok","XAI_API_KEY")
+        (ChatGPTLLM, "ChatGPT", "OPENAI_API_KEY"),
+        (GeminiLLM, "Gemini", "GOOGLE_API_KEY"),
+        (GrokLLM, "Grok", "XAI_API_KEY")
     ],
     ids=["chatgpt", "gemini", "grok"]
 )
@@ -67,7 +71,7 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
     """Test LLMCodeReviewer with real LLMs on Java PRs with logical bugs."""
     # Skip if API key is not set
     if not os.getenv(env_var):
-        pytest.skip(env_var+" not set")
+        pytest.skip(env_var + " not set")
 
     # Extract PR configuration
     pr_filename = pr_config["pr_filename"]
@@ -75,7 +79,6 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
     expected_keywords = pr_config["expected_keywords"]
     pr_title = pr_config["pr_title"]
     pr_body = pr_config["pr_body"]
-    pr_line = pr_config["pr_line"]
 
     # Create PR object
     pr = PR(title=pr_title, body=pr_body, head_sha="abc123", state="open")
@@ -89,18 +92,6 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
     # Setup mock VCS to return PR file
     mock_file = PRFile(filename=pr_filename, patch=diff_content)
     mock_vcsp.get_files_in_pr.return_value = [mock_file]
-    mock_vcsp.get_file_content.return_value = (
-        """public class UserService {
-    public String getUserName(User user) {
-        return user.getName();
-    }
-}""" if pr_filename.endswith("UserService.java") else
-        """public class FileProcessor {
-    public void processFile(String path) throws IOException {
-        // Processing code
-    }
-}"""
-    )
 
     # Initialize LLM and reviewer
     llm = llm_class()
@@ -114,10 +105,12 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
     assert len(result.reviews) > 0, f"{llm_name} did not return any reviews"
     found_bug = False
     for review in result.reviews:
-        if review.file == pr_filename and review.line == pr_line:
+        print(f"{llm_name} Review: {str(review)}")
+        if review.file == pr_filename:
             for comment in review.comments:
                 comment_lower = comment.lower()
-                if any(keyword in comment_lower for keyword in expected_keywords):
+                if review.line in expected_keywords and any(
+                        keyword in comment_lower for keyword in expected_keywords[review.line]):
                     found_bug = True
                     logging.info(f"{llm_name} detected bug in {pr_filename}: {comment}")
                     break
