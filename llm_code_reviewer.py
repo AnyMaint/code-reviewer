@@ -1,5 +1,7 @@
 import logging
 from typing import Any, List
+
+from diff_transformer import transform_diff_to_readable
 from models import LLMReviewResult, CodeReview
 from prompts import get_prompt
 from json_cleaner import JsonResponseCleaner
@@ -89,7 +91,8 @@ class LLMCodeReviewer:
         added_line_cache = {}
         for file in pr_files:
             if file.patch:
-                file_patches[file.filename] = file.patch
+                readable_diff = transform_diff_to_readable(file.patch)
+                file_patches[file.filename] = readable_diff
                 file_content = ""
                 if self.full_context:
                     try:
@@ -97,9 +100,9 @@ class LLMCodeReviewer:
                     except ValueError as e:
                         logging.error(f"Skipping file {file.filename}: {str(e)}")
                 file_chunk = (
-                    f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}"
+                    f"File: {file.filename}\n{file_content}\n\nDiff:\n{readable_diff}"
                     if self.full_context
-                    else f"File: {file.filename}\nDiff:\n{file.patch}"
+                    else f"File: {file.filename}\nDiff:\n{readable_diff}"
                 )
                 all_content.append(file_chunk)
         diff_content = "\n\n".join(all_content)

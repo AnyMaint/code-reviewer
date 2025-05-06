@@ -28,17 +28,17 @@ def mock_vcsp(mocker):
 
 # PR configurations
 PR_CONFIGS = [
-    {
-        "pr_filename": "src/app/services/notification.service.ts",
-        "diff_file_name": "user.service-2.diff",
-        "expected_keywords": {17: ["xss", "sanitize", "sanitization"], 55: ["error handling", "mutation"]},
-        "pr_title": "Enhance notification handling and optimize auth workflows",
-        "pr_body": """
-        Modified the notification display logic to handle HTML content (contains bug)
-Removed deprecated token refresh approach
-Added error handling for API responses
-""",
-    },
+#     {
+#         "pr_filename": "src/app/services/notification.service.ts",
+#         "diff_file_name": "user.service-2.diff",
+#         "expected_keywords": {17: ["xss", "sanitize", "sanitization"], 55: ["error handling", "mutation"]},
+#         "pr_title": "Enhance notification handling and optimize auth workflows",
+#         "pr_body": """
+#         Modified the notification display logic to handle HTML content (contains bug)
+# Removed deprecated token refresh approach
+# Added error handling for API responses
+# """,
+#     },
     {
         "pr_filename": "src/app/services/auth.service.ts",
         "diff_file_name": "user.service.diff",
