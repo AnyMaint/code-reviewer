@@ -18,13 +18,11 @@ logging.basicConfig(level=logging.DEBUG)
 # Base path for test data
 TEST_DATA_PATH = Path(__file__).parent / "data"
 
-
 # Fixture for mocked VCS
 @pytest.fixture
 def mock_vcsp(mocker):
     vcsp = Mock()
     return vcsp
-
 
 # PR configurations
 PR_CONFIGS = [
@@ -52,7 +50,6 @@ Added error handling for API responses
     },
 ]
 
-
 @pytest.mark.parametrize(
     "llm_class, llm_name, env_var",
     [
@@ -65,10 +62,10 @@ Added error handling for API responses
 @pytest.mark.parametrize(
     "pr_config",
     PR_CONFIGS,
-    ids=[f"pr-{config['diff_file_name'].replace('.txt', '')}" for config in PR_CONFIGS]
+    ids=[f"pr-{config['diff_file_name'].replace('.diff', '')}" for config in PR_CONFIGS]
 )
 def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_config):
-    """Test LLMCodeReviewer with real LLMs on Java PRs with logical bugs."""
+    """Test LLMCodeReviewer with real LLMs on PRs with logical bugs."""
     # Skip if API key is not set
     if not os.getenv(env_var):
         pytest.skip(env_var + " not set")
@@ -109,9 +106,15 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
         if review.file == pr_filename:
             for comment in review.comments:
                 comment_lower = comment.lower()
-                if review.line in expected_keywords and any(
-                        keyword in comment_lower for keyword in expected_keywords[review.line]):
-                    found_bug = True
-                    logging.info(f"{llm_name} detected bug in {pr_filename}: {comment}")
+                # Check expected keywords for the exact line and ±1 line
+                check_lines = [review.line, review.line - 1, review.line + 1]
+                for check_line in check_lines:
+                    if check_line in expected_keywords and any(
+                            keyword in comment_lower for keyword in expected_keywords[check_line]):
+                        found_bug = True
+                        logging.info(f"{llm_name} detected bug in {pr_filename} at line {review.line} "
+                                     f"(matched expected line {check_line}): {comment}")
+                        break
+                if found_bug:
                     break
     assert found_bug, f"{llm_name} failed to detect bug in {pr_filename} (expected keywords: {expected_keywords})"

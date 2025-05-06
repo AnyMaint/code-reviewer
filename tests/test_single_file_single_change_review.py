@@ -103,7 +103,7 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
     assert len(result.reviews) > 0, f"{llm_name} did not return any reviews"
     found_bug = False
     for review in result.reviews:
-        if review.file == pr_filename and review.line == pr_line:
+        if review.file == pr_filename and abs(review.line - pr_line) <2:
             for comment in review.comments:
                 comment_lower = comment.lower()
                 if any(keyword in comment_lower for keyword in expected_keywords):

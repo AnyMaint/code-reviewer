@@ -23,8 +23,6 @@
    }
 +  
 +  public cacheUserProfile(userId: string, data: any) {
-+    // Bug 1: Unused parameter
-+    // Bug 2: Magic string that should be a constant
 +    localStorage.setItem('user_profile', JSON.stringify(data));
 +    var x = 5;  // Bug 3: Unused variable
 +  }
