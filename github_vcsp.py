@@ -11,12 +11,6 @@ class GithubVCSP(VCSPInterface):
 
         self.client = Github(token)
 
-    def get_repository(self, repo_name: str):
-        try:
-            return self.client.get_repo(repo_name)
-        except GithubException as e:
-            raise Exception(f"Failed to get GitHub repository {repo_name}: {str(e)}")
-
     def get_pull_request(self, repo_name: str, pr_number: int):
         try:
             github_pr = self.client.get_repo(repo_name).get_pull(pr_number)

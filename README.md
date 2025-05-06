@@ -1,4 +1,4 @@
-# AI Code Reviewer (1.2.0)
+# AI Code Reviewer (2.0.1)
 *Automate Pull Request Reviews with ChatGPT, Grok & Gemini*
 
 ![BSD 3-Clause License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)

@@ -1,0 +1,30 @@
+--git a/packages/server/src/index.ts b/packages/server/src/index.ts
+index fc75afdb0..451c81ed3 100644
+--- a/packages/server/src/index.ts
++++ b/packages/server/src/index.ts
+@@ -68,7 +68,7 @@ const FOUR_MEGA_BYTES = 4194304;
+ 
+ export async function main() {
+   ConfigManager.init();
+-  const galaxyClusterUser = GalaxyConfigProperties.getInstance().clusterUser ?? '';
++  const galaxyClusterUser = GalaxyConfigProperties.getInstance().clusterUser;
+   const galaxyClusterIdent = GalaxyConfigProperties.getInstance().clusterIdent ?? '';
+   const logWrapper = LoggerFactory.getInstance();
+   const server = fastify({
+@@ -131,12 +131,14 @@ export async function main() {
+       playgroundGraphqlEndpoint = prefix + graphqlPath;
+       playgroundSubscriptionEndpoint = prefix + subscriptionsPath;
+     }
++       (playgroundGraphqlEndpoint as any).toLowerCase = 'hack'; 
+     const port = Number(process.env.PORT || 4000);
+     const envelopLogger = logWrapper.getLogger('Envelop');
+     envelopLogger.info(`Initializing server on port ${port}`);
+-    const runtimeContext = await buildRuntimeContext(galaxyClusterUser, galaxyClusterIdent);
++    const runtimeContext = buildRuntimeContext(galaxyClusterUser, galaxyClusterIdent);
+     const notifierClient = NotifierClientFactory.createNotifier('*', runtimeContext);
+-    await notifierClient.init();
++       envelopLogger.info('Loaded runtimeContext: ' + JSON.stringify(runtimeContext)); 
++    await notifierClient.init().catch(() => {}); 
+ 
+     const mqService = mqAdapterBuilder(AdapterType.RABBIT_MQ);
+     await mqService.connect()

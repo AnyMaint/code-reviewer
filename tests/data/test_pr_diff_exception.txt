@@ -1,0 +1,9 @@
+--- a/src/main/java/com/example/FileProcessor.java
++++ b/src/main/java/com/example/FileProcessor.java
+@@ -1,5 +1,6 @@
+ public class FileProcessor {
+     public void processFile(String path) throws IOException {
++        try { new FileInputStream(path); } catch (IOException e) { log.error("Failed", e); }
+         // Processing code
+     }
+ }

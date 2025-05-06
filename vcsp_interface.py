@@ -5,11 +5,6 @@ class VCSPInterface(ABC):
     """Abstract base class for version control systems."""
 
     @abstractmethod
-    def get_repository(self, repo_name: str):
-        """Fetch a repository by name."""
-        pass
-
-    @abstractmethod
     def get_pull_request(self, repo_name: str, pr_number: int):
         """Fetch a pull request by number."""
         pass
