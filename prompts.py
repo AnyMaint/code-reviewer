@@ -14,7 +14,7 @@ def get_prompt(deep: bool = False) -> str:
         "Each element must have the following structure: "
         "{"
         "  'file': string (the file name), "
-        "  'line': integer (the line number of the change, or 1 if undetermined), "
+        "  'line':  integer (the line number of issue in the new file from 'Line in new file', or old file from 'Line in old file' for deletions)",
         "  'comments': array of strings (specific feedback or issues for the change)"
         "}. "
         "If no issues are found for a file, include an element with an empty 'comments' array. "

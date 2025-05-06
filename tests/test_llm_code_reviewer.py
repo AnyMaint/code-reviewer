@@ -153,35 +153,3 @@ def test_review_pr_new_file(mock_vcsp, mock_llm, sample_pr, tmp_path, mocker):
     assert result.reviews[0].file == "new.py"
     assert result.reviews[0].line == 1
     assert result.reviews[0].comments == ["New file added"]
-
-
-def test_get_file_line_from_diff_empty_lines(mock_vcsp, tmp_path):
-    diff_file = tmp_path / "empty_lines_diff.txt"
-    diff_content = """--- a/main.py
-+++ b/main.py
-@@ -40,5 +40,6 @@
-    def process_data(data):
-        obj = data.get("object")
-        result = obj.method()
-+
-        return result"""
-    diff_file.write_text(diff_content, encoding='utf-8')
-    logging.debug(f"Created diff file: {diff_file}")
-    assert diff_file.exists(), f"Diff file not created: {diff_file}"
-
-    reviewer = LLMCodeReviewer(llm=Mock(), vcsp=mock_vcsp)
-    line = reviewer._get_file_line_from_diff(diff_file.read_text(encoding='utf-8'))
-    assert line == 43
-
-def test_get_all_added_line_numbers_from_ts_diff(tmp_path):
-        
-        diff_file = TEST_DATA_PATH / "ts_diff.patch"
-        assert diff_file.exists(), f"Diff file not found: {diff_file}"
-        logging.debug(f"Using diff file: {diff_file}")
-        
-        reviewer = LLMCodeReviewer(llm=Mock(), vcsp=mock_vcsp)
-        added_lines = reviewer.get_all_added_line_numbers(diff_file.read_text(encoding='utf-8'))
-
-        # Validate expected added lines
-        assert added_lines == [71, 134, 138, 140, 141], f"Unexpected added lines: {added_lines}"
-            

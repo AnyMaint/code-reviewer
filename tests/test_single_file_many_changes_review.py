@@ -28,17 +28,17 @@ def mock_vcsp(mocker):
 
 # PR configurations
 PR_CONFIGS = [
-#     {
-#         "pr_filename": "src/app/services/notification.service.ts",
-#         "diff_file_name": "user.service-2.diff",
-#         "expected_keywords": {17: ["xss", "sanitize", "sanitization"], 55: ["error handling", "mutation"]},
-#         "pr_title": "Enhance notification handling and optimize auth workflows",
-#         "pr_body": """
-#         Modified the notification display logic to handle HTML content (contains bug)
-# Removed deprecated token refresh approach
-# Added error handling for API responses
-# """,
-#     },
+    {
+        "pr_filename": "src/app/services/notification.service.ts",
+        "diff_file_name": "user.service-2.diff",
+        "expected_keywords": {17: ["xss", "sanitize", "sanitization"], 55: ["error handling", "mutation"]},
+        "pr_title": "Enhance notification handling and optimize auth workflows",
+        "pr_body": """
+        Modified the notification display logic to handle HTML content (contains bug)
+Removed deprecated token refresh approach
+Added error handling for API responses
+""",
+    },
     {
         "pr_filename": "src/app/services/auth.service.ts",
         "diff_file_name": "user.service.diff",
@@ -65,10 +65,10 @@ PR_CONFIGS = [
 @pytest.mark.parametrize(
     "pr_config",
     PR_CONFIGS,
-    ids=[f"pr-{config['diff_file_name'].replace('.txt', '')}" for config in PR_CONFIGS]
+    ids=[f"pr-{config['diff_file_name'].replace('.diff', '')}" for config in PR_CONFIGS]
 )
 def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_config):
-    """Test LLMCodeReviewer with real LLMs on Java PRs with logical bugs."""
+    """Test LLMCodeReviewer with real LLMs on PRs with logical bugs."""
     # Skip if API key is not set
     if not os.getenv(env_var):
         pytest.skip(env_var + " not set")
@@ -103,15 +103,24 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
     # Assert results
     assert isinstance(result, LLMReviewResult), f"{llm_name} did not return an LLMReviewResult"
     assert len(result.reviews) > 0, f"{llm_name} did not return any reviews"
-    found_bug = False
+
+    # Track matched expected lines
+    matched_lines = set()
     for review in result.reviews:
         print(f"{llm_name} Review: {str(review)}")
         if review.file == pr_filename:
             for comment in review.comments:
                 comment_lower = comment.lower()
-                if review.line in expected_keywords and any(
-                        keyword in comment_lower for keyword in expected_keywords[review.line]):
-                    found_bug = True
-                    logging.info(f"{llm_name} detected bug in {pr_filename}: {comment}")
-                    break
-    assert found_bug, f"{llm_name} failed to detect bug in {pr_filename} (expected keywords: {expected_keywords})"
+                # Check expected keywords for the exact line and ±1 line
+                check_lines = [review.line, review.line - 1, review.line + 1]
+                for check_line in check_lines:
+                    if check_line in expected_keywords and any(
+                            keyword in comment_lower for keyword in expected_keywords[check_line]):
+                        matched_lines.add(check_line)
+                        print(f"{llm_name} detected bug in {pr_filename} at line {review.line} "
+                              f"(matched expected line {check_line}): {comment}")
+
+    # Assert that all expected lines were matched
+    missing_lines = set(expected_keywords.keys()) - matched_lines
+    assert len(missing_lines) == 0, (f"{llm_name} failed to detect bugs in {pr_filename} at lines {missing_lines}. "
+                                     f"Expected keywords: {expected_keywords}")
