@@ -94,13 +94,12 @@ class LLMCodeReviewer:
                 if self.full_context:
                     try:
                         file_content = self.vcsp.get_file_content(repository, file.filename, ref=pr.head_sha)
+                        file_chunk = f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}"
                     except ValueError as e:
                         logging.error(f"Skipping file {file.filename}: {str(e)}")
-                file_chunk = (
-                    f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}"
-                    if self.full_context
-                    else f"File: {file.filename}\nDiff:\n{file.patch}"
-                )
+
+                else:
+                     file_chunk = f"File: {file.filename}\nDiff:\n{file.patch}"
                 all_content.append(file_chunk)
         diff_content = "\n\n".join(all_content)
 
