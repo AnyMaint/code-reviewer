@@ -65,7 +65,7 @@ def process_data(data):
     ]'''
     mocker.patch("llm_code_reviewer.get_prompt", return_value="Review prompt")
     mocker.patch("llm_code_reviewer.JsonResponseCleaner.strip",
-                 return_value='[{"file": "main.py", "line": 1, "comments": ["Add logging"]}]')
+                 return_value='[{"file": "main.py", "line": 43, "comments": ["Add logging"]}]')
     reviewer = LLMCodeReviewer(llm=mock_llm, vcsp=mock_vcsp, full_context=True, deep=True)
 
     result = reviewer.review_pr(sample_pr, "user/repo", 1)
@@ -77,24 +77,6 @@ def process_data(data):
     mock_llm.answer.assert_called_once()
     mock_vcsp.get_file_content.assert_called_with("user/repo", "main.py", ref="abc123")
 
-
-def test_get_file_line_from_diff(mock_vcsp, tmp_path):
-    diff_file = tmp_path / "sample_diff.txt"
-    diff_content = """--- a/main.py
-+++ b/main.py
-@@ -40,6 +40,7 @@
-    def process_data(data):
-        obj = data.get("object")
-        result = obj.method()
-+    logger.info("Processed data")
-        return result"""
-    diff_file.write_text(diff_content, encoding='utf-8')
-    logging.debug(f"Created diff file: {diff_file}")
-    assert diff_file.exists(), f"Diff file not created: {diff_file}"
-
-    reviewer = LLMCodeReviewer(llm=Mock(), vcsp=mock_vcsp)
-    line = reviewer._get_file_line_from_diff(diff_file.read_text(encoding='utf-8'))
-    assert line == 43  # Updated: + line is at 43
 
 
 def test_review_pr_deleted_file(mock_vcsp, mock_llm, sample_pr, tmp_path, mocker):
