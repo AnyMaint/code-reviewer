@@ -52,28 +52,26 @@ class LLMCodeReviewer:
         added_line_cache = {}
         for file in pr_files:
             if file.patch:
-                readable_diff = transform_diff_to_readable(file.patch)
-                file_patches[file.filename] = readable_diff
+                
+                # readable_diff = transform_diff_to_readable(file.patch)
+                file_patches[file.filename] = file.patch
                 file_content = ""
                 if self.full_context:
                     try:
                         file_content = self.vcsp.get_file_content(repository, file.filename, ref=pr.head_sha)
+                        file_chunk = f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}"                        
                     except ValueError as e:
-                        logging.error(f"Skipping file {file.filename}: {str(e)}")
-                file_chunk = (
-                    f"File: {file.filename}\n{file_content}\n\nDiff:\n{readable_diff}"
-                    if self.full_context
-                    else f"File: {file.filename}\nDiff:\n{readable_diff}"
-                )
+                        logging.error(f"Skipping file {file.filename}: {str(e)}") 
+                else:
+                    file_chunk = f"File: {file.filename}\nDiff:\n{file.patch}"
                 all_content.append(file_chunk)
+                
         diff_content = "\n\n".join(all_content)
 
         # Combine PR title, description, and diffs
         content = base_content + "Diffs:\n" + diff_content
-
         # Get system prompt
         system_prompt = get_prompt(self.deep)
-
         # Call LLM
         raw_response = self.llm.answer(
             system_prompt=system_prompt,
