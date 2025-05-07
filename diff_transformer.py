@@ -126,12 +126,12 @@ def _infer_context(line: str, hunk) -> str:
 def _get_context_before(line_no: int, context_lines: list, is_source: bool) -> str:
     """Get up to 2 context lines before the given line number."""
     key = 0 if is_source else 1  # source_line_no or target_line_no
-    before_lines = [line[1] for line in context_lines if line[0] < line_no]
+    before_lines = [line[1] for line in context_lines if line[0] is not None and line[0] < line_no]
     return '\n'.join(before_lines[-2:]) if before_lines else ""
 
 
 def _get_context_after(line_no: int, context_lines: list, is_source: bool) -> str:
     """Get up to 2 context lines after the given line number."""
     key = 0 if is_source else 1
-    after_lines = [line[1] for line in context_lines if line[0] > line_no]
+    after_lines = [line[1] for line in context_lines if line[0] is not None and line[0] > line_no]
     return '\n'.join(after_lines[:2]) if after_lines else ""

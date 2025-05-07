@@ -5,3 +5,5 @@ httpx==0.28.1
 atlassian-python-api>=3.19
 python-gitlab==5.6.0
 unidiff>=0.7.5
+pytest>=8.3.5
+pytest-mock>=3.14.0
