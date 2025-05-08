@@ -109,10 +109,16 @@ class BitbucketVCSP(VCSPInterface):
             f"https://api.bitbucket.org/2.0/repositories/"
             f"{self.workspace}/{repo_name}/pullrequests/{self.pr_number}/comments"
         )
-        payload = {
-            "content": {"raw": comment},
-            "inline": {"path": file_path, "to": line}
-        }
+        payload = None
+        if file_path != "":
+            payload = {
+                "content": {"raw": comment},
+                "inline": {"path": file_path, "to": line}
+            }
+        else:
+            payload = {
+                "content": {"raw": comment}             
+            }
         try:
             response = requests.post(url, json=payload, auth=(self.bb_user, self.bb_pass))
             response.raise_for_status()
