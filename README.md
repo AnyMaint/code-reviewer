@@ -38,14 +38,16 @@ Welcome to **AI Code Reviewer**, a Python tool built by [AnyMaint](https://anyma
    export OPENAI_MODEL=llama3.1:8b #
 ```
 ## Usage
+There are 2 scripts - `describe-pr.py` for general PR summary and `review.py` for issues and comments.
 
 There is an article how to use the tool. 
 It may be outdated, but it is a good start: [How to Use AI Code Reviewer](https://medium.com/itnext/ai-code-reviewer-automate-your-code-reviews-137bfaa20e8b)
-- **General PR Summary (Default: Bug-Focused) using Gitlab:**:
+
+- **General PR Summary using Gitlab:**:
 ```bash
-      python review.py "owner/repo" 123 --vcsp gitlab --mode general
+      python describe-pr.py "owner/repo" 123 --vcsp gitlab
 ```
-- **List Issues Only Using Grok (Bug-Focused)**:
+- **List Issues Only Using Grok **:
 ```bash
    python review.py "owner/repo" 123 --mode issues --llm grok
 ```
