@@ -3,7 +3,7 @@ from typing import Any, List
 from models import LLMReviewResult, CodeReview
 from prompts import get_prompt
 from json_cleaner import JsonResponseCleaner
-from llm_interface import LLMInterface
+from llm_interface import LLMInterface, ModelResult
 from collections import defaultdict
 import re
 
@@ -116,27 +116,17 @@ class LLMCodeReviewer:
             content=content
         )
 
+        if raw_response:
         # Parse JSON response
-        cleaned_response = self.json_cleaner.strip(raw_response)
-        logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")
-        if not cleaned_response:
-            logging.error("Error: No valid JSON found in LLM response")
-            return LLMReviewResult(reviews=[])
-        try:
-            review_result = LLMReviewResult.from_json(cleaned_response)
-            
-            # Adjust line numbers for reviews
-           # for review in review_result.reviews:
-                # if review.line == 1 and review.file in file_patches:
-                #     review.line = self._get_file_line_from_diff(file_patches[review.file])       
-                #if review.file in file_patches:
-                   # if review.file not in added_line_cache:
-                    #    added_line_cache[review.file] = self.get_all_added_line_numbers(file_patches[review.file])
-                    #if added_line_cache[review.file]:
-                     #   review.line = added_line_cache[review.file].pop(0)
-                 #   else:
-                 #       review.line = 1  # fallback
-            return review_result
-        except ValueError as e:
-            logging.error(f"Error parsing LLM response: {str(e)}")
-            return LLMReviewResult(reviews=[])
+            cleaned_response = self.json_cleaner.strip(raw_response.response)
+            logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")
+            if not cleaned_response:
+                logging.error("Error: No valid JSON found in LLM response")
+                return None
+            try:
+                review_result = LLMReviewResult.from_json(cleaned_response, 
+                    raw_response.total_tokens,raw_response.prompt_tokens, raw_response.completion_tokens)                
+                return review_result
+            except ValueError as e:
+                logging.error(f"Error parsing LLM response: {str(e)}")
+        return None
