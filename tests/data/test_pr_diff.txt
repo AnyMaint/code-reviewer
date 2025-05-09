@@ -1,0 +1,9 @@
+--- a/src/main/java/com/example/UserService.java
++++ b/src/main/java/com/example/UserService.java
+@@ -1,5 +1,6 @@
+ public class UserService {
+     public String getUserName(User user) {
++        if (user.getName() == "admin") user.setRole("ADMIN");
+         return user.getName();
+     }
+ }

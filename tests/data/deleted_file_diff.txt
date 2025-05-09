@@ -1,0 +1,6 @@
+--- a/src/old.py
++++ /dev/null
+@@ -1,3 +0,0 @@
+-def old_function():
+-    print("Old code")
+-    return True

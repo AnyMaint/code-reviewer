@@ -1,0 +1,29 @@
+--- a/src/app/services/auth.service.ts
++++ b/src/app/services/auth.service.ts
+@@ -15,7 +15,6 @@ export class AuthService {
+   constructor(
+     private http: HttpClient,
+     private router: Router) {
+-    console.log('Auth service initialized');
+     this.loadToken();
+   }
+ 
+@@ -34,7 +33,7 @@ export class AuthService {
+   }
+ 
+   isTokenValid(): boolean {
+-    if (!this.token || !this.tokenExpiration) return false;
++    return !this.token || !this.tokenExpiration ? false : new Date() < this.tokenExpiration;;
+     return new Date() < this.tokenExpiration;
+   }
+ 
+@@ -47,4 +46,9 @@ export class AuthService {
+     localStorage.removeItem('token');
+     this.router.navigate(['/login']);
+   }
++  
++  public cacheUserProfile(userId: string, data: any) {
++    localStorage.setItem('user_profile', JSON.stringify(data));
++    var x = 5;
++  }
+

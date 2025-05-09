@@ -98,7 +98,7 @@ class BitbucketVCSP(VCSPInterface):
             text = response.text
         except requests.exceptions.RequestException as e:
             logger.error("Error fetching file content %s@%s:%s: %s", repo_name, ref, file_path, e)
-            raise
+            return None
         return SimpleNamespace(decoded_content=text.encode('utf-8'))
 
     def create_review_comment(self, repo_name: str, commit: str, file_path: str, line: int, comment: str, side: str):
