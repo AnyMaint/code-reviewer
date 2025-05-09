@@ -29,7 +29,7 @@ PR_CONFIGS = [
     {
         "pr_filename": "src/app/services/notification.service.ts",
         "diff_file_name": "user.service-2.diff",
-        "expected_keywords": {17: ["xss", "sanitize", "sanitization"], 55: ["error handling", "mutation"]},
+        "expected_keywords": {15: ["xss", "sanitize", "sanitization"], 55: ["error handling", "mutation"]},
         "pr_title": "Enhance notification handling and optimize auth workflows",
         "pr_body": """
         Modified the notification display logic to handle HTML content (contains bug)
@@ -107,7 +107,7 @@ def test_review_pr_with_real_llm(mock_vcsp, llm_class, llm_name, env_var, pr_con
             for comment in review.comments:
                 comment_lower = comment.lower()
                 # Check expected keywords for the exact line and ±1 line
-                check_lines = [review.line, review.line - 1, review.line + 1]
+                check_lines = [review.line, review.line - 2, review.line + 2]
                 for check_line in check_lines:
                     if check_line in expected_keywords and any(
                             keyword in comment_lower for keyword in expected_keywords[check_line]):

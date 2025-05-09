@@ -133,7 +133,7 @@ for i in range(len(args.llm)):
         for review in review_result.reviews:
             review_summary += f"  File: {review.file}, Line: {review.line}\n"
             if review.comments:
-                review_summary += "    Comments: {" + '\n'.join(str(comment) for comment in review.comments)
+                review_summary += "    Comments: " + '\n'.join(str(comment) for comment in review.comments)
             if review.bug_count != 0:
                 review_summary += f"    bugCount={review.bug_count},"
             if review.smell_count != 0:
@@ -193,3 +193,4 @@ for i in range(len(args.llm)):
                     logging.error(f"Error posting comment on {review.file}: {str(e)}")
     elif args.mode == "comments":
         logging.info("Comments mode: PR is closed, no comments posted.")
+    break
