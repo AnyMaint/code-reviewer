@@ -1,7 +1,7 @@
 import logging
 import os
 import openai
-from llm_interface import LLMInterface
+from llm_interface import LLMInterface, ModelResult
 from config import LOG_CHAR_LIMIT
 
 class ChatGPTLLM(LLMInterface):
@@ -29,8 +29,12 @@ class ChatGPTLLM(LLMInterface):
                 temperature=0.0,
             )
             raw_response = response.choices[0].message.content.strip()
+            usage = response.usage            
             logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")
-            return raw_response
+            return ModelResult(response =raw_response, 
+                              total_tokens=usage.total_tokens,
+                              prompt_tokens=usage.prompt_tokens,
+                              completion_tokens=usage.completion_tokens)
         except Exception as e:
             print(f"Error communicating with ChatGPT API: {str(e)}")
-            return ""
+            return None

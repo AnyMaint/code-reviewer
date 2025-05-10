@@ -1,7 +1,7 @@
 import logging
 import os
 import google.generativeai as genai
-from llm_interface import LLMInterface
+from llm_interface import LLMInterface, ModelResult
 from config import LOG_CHAR_LIMIT
 
 
@@ -27,8 +27,12 @@ class GeminiLLM(LLMInterface):
                 }
             )
             raw_response = response.text.strip()
-            logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")
-            return raw_response
+            usage = response.usage_metadata            
+            logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")            
+            return ModelResult(response=raw_response, 
+                             total_tokens=usage.total_token_count,
+                             prompt_tokens=usage.prompt_token_count,
+                             completion_tokens=usage.candidates_token_count)
         except Exception as e:
-            logging.error(f"Error communicating with Gemini API: {str(e)}")
-            return ""
+            logging.error(f"Error communicating with Gemini API: {str(e)}")            
+            return None

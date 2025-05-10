@@ -3,9 +3,12 @@ from typing import Any
 
 from config import LOG_CHAR_LIMIT
 from json_cleaner import JsonResponseCleaner
-from llm_interface import LLMInterface
-from models import LLMReviewResult
+from llm_interface import LLMInterface, ModelResult
+from collections import defaultdict
 from prompts import get_prompt
+from models import LLMReviewResult
+import re
+
 from vcsp_interface import VCSPInterface
 
 
@@ -74,16 +77,17 @@ class LLMCodeReviewer:
             content=content
         )
 
+        if raw_response:
         # Parse JSON response
-        cleaned_response = self.json_cleaner.strip(raw_response)
-        logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")
-        if not cleaned_response:
-            logging.error("Error: No valid JSON found in LLM response")
-            return LLMReviewResult(reviews=[])
-        try:
-            review_result = LLMReviewResult.from_json(cleaned_response)
-
-            return review_result
-        except ValueError as e:
-            logging.error(f"Error parsing LLM response: {str(e)}")
-            return LLMReviewResult(reviews=[])
+            cleaned_response = self.json_cleaner.strip(raw_response.response)
+            logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")
+            if not cleaned_response:
+                logging.error("Error: No valid JSON found in LLM response")
+                return None
+            try:
+                review_result = LLMReviewResult.from_json(cleaned_response, 
+                    raw_response.total_tokens,raw_response.prompt_tokens, raw_response.completion_tokens)                
+                return review_result
+            except ValueError as e:
+                logging.error(f"Error parsing LLM response: {str(e)}")
+        return None
