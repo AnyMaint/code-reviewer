@@ -40,9 +40,7 @@ class GrokLLM(LLMInterface):
             result = response.json()
             raw_response = result["choices"][0]["message"]["content"].strip()
             logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")
-            usage = result.get("usage")
-            if usage:
-                logging.info(f"Tokens Used: {usage['total_tokens']}, Prompt Tokens: {usage['prompt_tokens']}, Completion Tokens: {usage['completion_tokens']}")
+            usage = result.get("usage")            
             return ModelResult(response=raw_response, total_tokens=usage['total_tokens'], 
                     prompt_tokens=usage['prompt_tokens'], completion_tokens= usage['completion_tokens'])
         except requests.exceptions.HTTPError as e:

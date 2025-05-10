@@ -13,8 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Introduced reviewer class, which creates prompts
 - LLM output in JSON
 - Issues lines detection based on LLM output only
-- Added option to use several llm models (like --llm chatgpt grok), so it will use it
-- Added metrics: tokens, count of bugs found, the info published as additional general review
+- Support multiple LLM models: Added the ability to specify one or more LLMs via the --llm option (e.g., --llm chatgpt grok).
+- Enhanced metrics reporting: Introduced token usage, bug count, and a summary of general review information as additional metrics.
 
 ## [1.2] - 2025-04-25
 ### Added

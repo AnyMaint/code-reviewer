@@ -28,8 +28,7 @@ class GeminiLLM(LLMInterface):
             )
             raw_response = response.text.strip()
             usage = response.usage_metadata            
-            logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")
-            logging.debug(f"Prompt tokens: {usage.prompt_token_count}, Response tokens: {usage.candidates_token_count}, Total tokens:{usage.total_token_count}")
+            logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")            
             return ModelResult(response=raw_response, 
                              total_tokens=usage.total_token_count,
                              prompt_tokens=usage.prompt_token_count,

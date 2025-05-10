@@ -29,9 +29,7 @@ class ChatGPTLLM(LLMInterface):
                 temperature=0.0,
             )
             raw_response = response.choices[0].message.content.strip()
-            usage = response.usage
-            if usage:
-                logging.info(f"Tokens Used: {usage.total_tokens}, Prompt Tokens: {usage.prompt_tokens}, Completion Tokens: {usage.completion_tokens}")
+            usage = response.usage            
             logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")
             return ModelResult(response =raw_response, 
                               total_tokens=usage.total_tokens,
