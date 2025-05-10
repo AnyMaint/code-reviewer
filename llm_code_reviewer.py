@@ -71,22 +71,22 @@ class LLMCodeReviewer:
         system_prompt = get_prompt(self.deep)
 
         # Call LLM
-        raw_response = self.llm.answer(
+        llm_answer = self.llm.answer(
             system_prompt=system_prompt,
             user_prompt="",  # No separate user prompt needed; content includes all info
             content=content
         )
 
-        if raw_response:
+        if llm_answer:
         # Parse JSON response
-            cleaned_response = self.json_cleaner.strip(raw_response.response)
+            cleaned_response = self.json_cleaner.strip(llm_answer.response)
             logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")
             if not cleaned_response:
                 logging.error("Error: No valid JSON found in LLM response")
                 return None
             try:
                 review_result = LLMReviewResult.from_json(cleaned_response, 
-                    raw_response.total_tokens,raw_response.prompt_tokens, raw_response.completion_tokens)                
+                    llm_answer.total_tokens,llm_answer.prompt_tokens, llm_answer.completion_tokens)                
                 return review_result
             except ValueError as e:
                 logging.error(f"Error parsing LLM response: {str(e)}")
