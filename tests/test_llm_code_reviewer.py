@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock
-from llm_code_reviewer import LLMCodeReviewer
+from llm_code_reviewer import LLMCodeReviewer, remove_hunk_counts
 from models import LLMReviewResult, CodeReview
 from llm_interface import LLMInterface, ModelResult
 from vcsp_interface import PR, PRFile
@@ -154,3 +154,16 @@ def test_review_pr_new_file(mock_vcsp, mock_llm, sample_pr, tmp_path, mocker):
     assert result.reviews[0].line == 1
     assert result.reviews[0].comments == ["New file added"]
 
+def test_review_pr_new_file():
+
+    sample = """\
+@@ -68,7 +68,7 @@ const FOUR_MEGA_BYTES = 4194304;
+@@ -101,7 +101,7 @@ export async function main() {
+@@ -132,11 +132,12 @@ export async function main() {
+"""
+    assert remove_hunk_counts(sample) == """\
+@@ -68 +68 @@ const FOUR_MEGA_BYTES = 4194304;
+@@ -101 +101 @@ export async function main() {
+@@ -132 +132 @@ export async function main() {
+"""
+    

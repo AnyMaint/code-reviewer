@@ -66,6 +66,12 @@ parser.add_argument(
     help="Version control system provider to use: 'github' (default: github)",
 )
 
+parser.add_argument(
+    "--add_statistic_info",
+    action="store_true",
+    help="Enable the inclusion of statistical information in the review",
+)
+
 args = parser.parse_args()
 
 # Set logging level based on --debug
@@ -131,20 +137,22 @@ for i in range(len(args.llm)):
     else:
         review_summary = ""
         for review in review_result.reviews:
-            review_summary += f"  File: {review.file}, Line: {review.line}\n"
+            review_summary += f"\n  File: {review.file}, Line: {review.line}"
             if review.comments:
                 review_summary += "    Comments: " + '\n'.join(str(comment) for comment in review.comments)
-            if review.bug_count != 0:
-                review_summary += f"    bugCount={review.bug_count},"
-            if review.smell_count != 0:
-                review_summary += f"    smellCount={review.smell_count},"
-            if review.optimization_count != 0:
-                review_summary += f"    optimizationCount={review.optimization_count},"
-            if review.logical_errors != 0:
-                review_summary += f"    logicalErrors={review.logical_errors}\n"
-            if review.performance_issues != 0:
-                review_summary += f"    performanceIssues={review.performance_issues},"
-        print(review_result.get_overall_review(args.deep, args.full_context, args.llm[i]))
+            if args.add_statistic_info:
+                if review.bug_count != 0:
+                    review_summary += f"    bugCount={review.bug_count},"
+                if review.smell_count != 0:
+                    review_summary += f"    smellCount={review.smell_count},"
+                if review.optimization_count != 0:
+                    review_summary += f"    optimizationCount={review.optimization_count},"
+                if review.logical_errors != 0:
+                    review_summary += f"    logicalErrors={review.logical_errors}\n"
+                if review.performance_issues != 0:
+                    review_summary += f"    performanceIssues={review.performance_issues},"
+        if args.add_statistic_info:
+            print(review_result.get_overall_review(args.deep, args.full_context, args.llm[i]))
         print(review_summary)
                 
 
@@ -154,14 +162,15 @@ for i in range(len(args.llm)):
         except Exception as e:
             logging.error(f"Failed to fetch head commit: {str(e)}")
             exit(1)
-        vcsp.create_review_comment(
-                        repo_name=args.repository,
-                        comment=review_result.get_overall_review(args.deep, args.full_context, args.llm[i]),                        
-                        file_path="",
-                        line=0,
-                        commit=head_commit.sha,
-                        side="RIGHT"
-                    )
+        if args.add_statistic_info:
+            vcsp.create_review_comment(
+                            repo_name=args.repository,
+                            comment=review_result.get_overall_review(args.deep, args.full_context, args.llm[i]),                        
+                            file_path="",
+                            line=0,
+                            commit=head_commit.sha,
+                            side="RIGHT"
+                        )
         for review in review_result.reviews:
             if review.comments:
                 lines = ["AI Comment:"] + review.comments
