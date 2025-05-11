@@ -1,33 +1,34 @@
-# gemini_llm.py
+import logging
 import os
 import google.generativeai as genai
 from llm_interface import LLMInterface
-from prompts import get_prompt
+from config import LOG_CHAR_LIMIT
+
 
 class GeminiLLM(LLMInterface):
-    def __init__(self, debug: bool = False, deep: bool = False):
+    def __init__(self):
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required for Gemini")
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
-        self.debug = debug
-        self.deep = deep
 
-    def _get_prompt(self, mode: str) -> str:
-        return get_prompt(mode, self.deep)
+    def answer(self, system_prompt: str, user_prompt: str, content: str) -> str:
+        """Generate a response for the given prompts and content."""
+        full_input = f"{system_prompt}\n\n{user_prompt}\n\n{content}" if user_prompt else f"{system_prompt}\n\n{content}"
+        logging.debug(
+            f"Gemini Request:\nModel: {self.model.model_name}\nContent: {full_input[:LOG_CHAR_LIMIT]}... (truncated)")
 
-    def generate_review(self, content: str, mode: str) -> str:
-        prompt = self._get_prompt(mode)
-        full_input = f"{prompt}\n\n{content}"
-
-        if self.debug:
-            print(f"Gemini Request:\nModel: {self.model.model_name}\nContent: {full_input[:500]}... (truncated)")
-
-        response = self.model.generate_content(
-            full_input,
-            generation_config={
-                "temperature": 0.0  # Maximum consistency
-            }
-        )
-        return response.text.strip()
+        try:
+            response = self.model.generate_content(
+                full_input,
+                generation_config={
+                    "temperature": 0.0  # Maximum consistency
+                }
+            )
+            raw_response = response.text.strip()
+            logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")
+            return raw_response
+        except Exception as e:
+            logging.error(f"Error communicating with Gemini API: {str(e)}")
+            return ""

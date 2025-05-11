@@ -1,0 +1,8 @@
+--- a/src/main.py
++++ b/src/main.py
+@@ -40,5 +40,6 @@
+    def process_data(data):
+        obj = data.get("object")
+        result = obj.method()
++
+        return result
