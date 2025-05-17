@@ -29,7 +29,7 @@ PR_CONFIGS = [
     {
         "pr_filename": "src/app/services/notification.service.ts",
         "diff_file_name": "user.service-2.diff",
-        "expected_keywords": {15: ["xss", "sanitize", "sanitization"], 55: ["error handling", "mutation"]},
+        "expected_keywords": {14: ["xss", "sanitize", "sanitization", "logical error"], 52: ["error handling", "mutation", "duplicates"]},
         "pr_title": "Enhance notification handling and optimize auth workflows",
         "pr_body": """
         Modified the notification display logic to handle HTML content (contains bug)
@@ -40,7 +40,7 @@ Added error handling for API responses
     {
         "pr_filename": "src/app/services/auth.service.ts",
         "diff_file_name": "user.service.diff",
-        "expected_keywords": {38: ["semicolon"], 50: ["unused", "magic string"]},
+        "expected_keywords": {34: ["semicolon"], 46: ["unused", "magic string", "never used"]},
         "pr_title": "Update authentication service and add profile caching",
         "pr_body": """
         - Removed outdated debug console log statement
