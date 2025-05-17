@@ -12,13 +12,13 @@ class GrokLLM(LLMInterface):
         self.api_key = api_key
         self.base_url = "https://api.x.ai/v1"
         self.endpoint = "/chat/completions"
-        self.model = os.getenv("GROK_MODEL", "grok-3-latest")
+        self.model = os.getenv("GROK_MODEL", "grok-3-mini")
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
         }
 
-    def answer(self, system_prompt: str, user_prompt: str, content: str) -> str:
+    def answer(self, system_prompt: str, user_prompt: str, content: str) -> ModelResult:
         """Generate a response for the given prompts and content."""
         logging.debug(
             f"Grok Request:\nModel: {self.model}\nSystem Prompt: {system_prompt[:LOG_CHAR_LIMIT]}..."

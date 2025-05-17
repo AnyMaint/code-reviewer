@@ -12,7 +12,7 @@ class ChatGPTLLM(LLMInterface):
         self.client = openai.OpenAI(api_key=api_key)
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-    def answer(self, system_prompt: str, user_prompt: str, content: str) -> str:
+    def answer(self, system_prompt: str, user_prompt: str, content: str) -> ModelResult:
         """Generate a JSON response for the given prompts and content."""
         logging.debug(
             f"ChatGPT Request:\nModel: {self.model}\nSystem Prompt: {system_prompt[:LOG_CHAR_LIMIT]}..."

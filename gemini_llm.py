@@ -13,7 +13,7 @@ class GeminiLLM(LLMInterface):
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
 
-    def answer(self, system_prompt: str, user_prompt: str, content: str) -> str:
+    def answer(self, system_prompt: str, user_prompt: str, content: str) -> ModelResult:
         """Generate a response for the given prompts and content."""
         full_input = f"{system_prompt}\n\n{user_prompt}\n\n{content}" if user_prompt else f"{system_prompt}\n\n{content}"
         logging.debug(
