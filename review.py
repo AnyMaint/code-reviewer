@@ -38,8 +38,10 @@ parser.add_argument(
     "--llm",
     choices=["chatgpt", "gemini", "grok"],
     default="chatgpt",
-    help="LLM to use: 'chatgpt', 'gemini', or 'grok' (default: chatgpt)",
+    nargs="+",
+    help="LLM to use (one or more): 'chatgpt', 'gemini', or 'grok' (default: chatgpt)",
 )
+
 parser.add_argument(
     "--deep",
     action="store_true",
@@ -64,6 +66,12 @@ parser.add_argument(
     help="Version control system provider to use: 'github' (default: github)",
 )
 
+parser.add_argument(
+    "--add_statistic_info",
+    action="store_true",
+    help="Enable the inclusion of statistical information in the review",
+)
+
 args = parser.parse_args()
 
 # Set logging level based on --debug
@@ -81,80 +89,117 @@ llm_map = {
     "gemini": GeminiLLM,
     "grok": GrokLLM,
 }
-try:
-    llm = llm_map[args.llm]()
-except ValueError as e:
-    logging.error(f"Failed to initialize LLM: {str(e)}")
-    exit(1)
 
-# VCS setup
-version_control_system_map = {
-    "github": GithubVCSP,
-    "gitlab": GitlabVCSP,
-    "bitbucket": BitbucketVCSP,
-}
-try:
-    vcsp = version_control_system_map[args.vcsp]()
-except ValueError as e:
-    logging.error(f"Failed to initialize VCS: {str(e)}")
-    exit(1)
-
-# Fetch repository and pull request
-try:
-    pr = vcsp.get_pull_request(args.repository, args.pr_number)
-except Exception as e:
-    logging.error(f"Failed to fetch pull request: {str(e)}")
-    exit(1)
-
-# Create LLMCodeReviewer
-reviewer = LLMCodeReviewer(
-    llm=llm,
-    vcsp=vcsp,
-    full_context=args.full_context,
-    deep=args.deep,
-)
-
-# Get the review
-try:
-    review_result: LLMReviewResult = reviewer.review_pr(pr, args.repository, args.pr_number)
-except Exception as e:
-    logging.error(f"Failed to generate review: {str(e)}")
-    exit(1)
-
-print("Code Issues:")
-if not review_result.reviews:
-    print("  No issues found.")
-for review in review_result.reviews:
-    print(f"  File: {review.file}, Line: {review.line}")
-    if review.comments:
-        for comment in review.comments:
-            print(f"    - {comment}")
-    else:
-        print("    - No issues found.")
-
-if args.mode == "comments" and pr.state.lower() == "open":
+for i in range(len(args.llm)):
     try:
-        head_commit = vcsp.get_commit(args.repository, pr.head_sha)
-    except Exception as e:
-        logging.error(f"Failed to fetch head commit: {str(e)}")
+        llm = llm_map[args.llm[i]]()
+    except ValueError as e:
+        logging.error(f"Failed to initialize LLM: {str(e)}")
+        continue
+
+    # VCS setup
+    version_control_system_map = {
+        "github": GithubVCSP,
+        "gitlab": GitlabVCSP,
+        "bitbucket": BitbucketVCSP,
+    }
+    try:
+        vcsp = version_control_system_map[args.vcsp]()
+    except ValueError as e:
+        logging.error(f"Failed to initialize VCS: {str(e)}")
         exit(1)
-    for review in review_result.reviews:
-        if review.comments:
-            comment = (
-                f"AI Issue by {args.llm} (full-context: {args.full_context}, deep: {args.deep}):\n"
-                + "\n".join(review.comments)
-            )
-            try:
-                vcsp.create_review_comment(
-                    repo_name=args.repository,
-                    comment=comment,
-                    commit=head_commit.sha,
-                    file_path=review.file,
-                    line=review.line,
-                    side="RIGHT",
-                )
-                logging.info(f"Posted comment on {review.file} at line {review.line}")
-            except Exception as e:
-                logging.error(f"Error posting comment on {review.file}: {str(e)}")
-elif args.mode == "comments":
-    logging.info("Comments mode: PR is closed, no comments posted.")
+
+    # Fetch repository and pull request
+    try:
+        pr = vcsp.get_pull_request(args.repository, args.pr_number)
+    except Exception as e:
+        logging.error(f"Failed to fetch pull request: {str(e)}")
+        exit(1)
+
+    # Create LLMCodeReviewer
+    reviewer = LLMCodeReviewer(
+        llm=llm,
+        vcsp=vcsp,
+        full_context=args.full_context,
+        deep=args.deep,
+    )
+
+    # Get the review
+    try:
+        review_result: LLMReviewResult = reviewer.review_pr(pr, args.repository, args.pr_number)
+    except Exception as e:
+        logging.error(f"Failed to generate review: {str(e)}")
+        continue
+
+    print("Code Issues:")
+    if not review_result or not review_result.reviews:
+        print("  No issues found.")    
+    else:
+        review_summary = ""
+        for review in review_result.reviews:
+            review_summary += f"\n  File: {review.file}, Line: {review.line}"
+            if review.comments:
+                review_summary += "    Comments: " + '\n'.join(str(comment) for comment in review.comments)
+            if args.add_statistic_info:
+                if review.bug_count != 0:
+                    review_summary += f"    bugCount={review.bug_count},"
+                if review.smell_count != 0:
+                    review_summary += f"    smellCount={review.smell_count},"
+                if review.optimization_count != 0:
+                    review_summary += f"    optimizationCount={review.optimization_count},"
+                if review.logical_errors != 0:
+                    review_summary += f"    logicalErrors={review.logical_errors}\n"
+                if review.performance_issues != 0:
+                    review_summary += f"    performanceIssues={review.performance_issues},"
+        if args.add_statistic_info:
+            print(review_result.get_overall_review(args.deep, args.full_context, args.llm[i]))
+        print(review_summary)
+                
+
+    if args.mode == "comments" and pr.state.lower() == "open":
+        try:
+            head_commit = vcsp.get_commit(args.repository, pr.head_sha)
+        except Exception as e:
+            logging.error(f"Failed to fetch head commit: {str(e)}")
+            exit(1)
+        if args.add_statistic_info:
+            vcsp.create_review_comment(
+                            repo_name=args.repository,
+                            comment=review_result.get_overall_review(args.deep, args.full_context, args.llm[i]),                        
+                            file_path="",
+                            line=0,
+                            commit=head_commit.sha,
+                            side="RIGHT"
+                        )
+        for review in review_result.reviews:
+            if review.comments:
+                lines = ["AI Comment:"] + review.comments
+
+                # add any non-zero counts
+                if review.bug_count:
+                    lines.append(f"    bugCount={review.bug_count}")
+                if review.smell_count:
+                    lines.append(f"    smellCount={review.smell_count}")
+                if review.optimization_count:
+                    lines.append(f"    optimizationCount={review.optimization_count}")
+                if review.logical_errors:
+                    lines.append(f"    logicalErrors={review.logical_errors}")
+                if review.performance_issues:
+                    lines.append(f"    performanceIssues={review.performance_issues}")
+
+                comment = "\n".join(lines)
+                try:
+                    vcsp.create_review_comment(
+                        repo_name=args.repository,
+                        comment=comment,
+                        commit=head_commit.sha,
+                        file_path=review.file,
+                        line=review.line,
+                        side="RIGHT",
+                    )
+                    logging.info(f"Posted comment on {review.file} at line {review.line}")
+                except Exception as e:
+                    logging.error(f"Error posting comment on {review.file}: {str(e)}")
+    elif args.mode == "comments":
+        logging.info("Comments mode: PR is closed, no comments posted.")
+    break

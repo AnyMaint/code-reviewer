@@ -3,7 +3,6 @@ All notable changes to **AI Code Reviewer** will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to semantic versioning.
 
-
 ## [2.0.1] - 2025-05-02
 ### Added
 - Unit tests
@@ -14,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Introduced reviewer class, which creates prompts
 - LLM output in JSON
 - Issues lines detection based on LLM output only
+- Support multiple LLM models: Added the ability to specify one or more LLMs via the --llm option (e.g., --llm chatgpt grok).
+- Enhanced metrics reporting: Introduced token usage, bug count, and a summary of general review information as additional metrics.
 
 ## [1.2] - 2025-04-25
 ### Added

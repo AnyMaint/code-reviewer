@@ -50,8 +50,10 @@ class GithubVCSP(VCSPInterface):
                 raise Exception(f"No pull request found for commit {commit} in {repo_name}")
             pr = prs[0]
             print(f"Posting comment on {file_path} at position {line} in commit {commit}")
-
-            pr.create_review_comment(comment, commit_obj, file_path, line)
+            if file_path != "":                
+                pr.create_review_comment(comment, commit_obj, file_path, line)
+            else:
+                pr.create_issue_comment(comment, commit_obj)
             return True
         except GithubException as e:
             raise Exception(f"Failed to create GitHub review comment: {str(e)}")
