@@ -11,7 +11,7 @@ class GeminiLLM(LLMInterface):
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required for Gemini")
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-1.5-flash"))
+        self.model = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.0-flash"))
 
     def answer(self, system_prompt: str, user_prompt: str, content: str) -> ModelResult:
         """Generate a response for the given prompts and content."""
@@ -27,7 +27,14 @@ class GeminiLLM(LLMInterface):
                 }
             )
             raw_response = response.text.strip()
-            usage = response.usage_metadata            
+            if response.usage_metadata is None:
+                usage = {
+                    "total_token_count": 0,
+                    "prompt_token_count": 0,
+                    "candidates_token_count": 0
+                }
+            else:
+                usage = response.usage_metadata
             logging.debug(f"Raw Response:\n{raw_response[:LOG_CHAR_LIMIT]}... (truncated)")            
             return ModelResult(response=raw_response, 
                              total_tokens=usage.total_token_count,
