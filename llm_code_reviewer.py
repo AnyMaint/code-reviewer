@@ -80,61 +80,68 @@ class LLMCodeReviewer:
 
         Returns:
             LLMReviewResult containing the parsed reviews with adjusted line numbers.
-        """
-        # Prepare PR title and description
-        pr_title = pr.title or "No title provided"
-        pr_description = pr.body or "No description provided"
-        base_content = f"PR Title: {pr_title}\nPR Description:\n{pr_description}\n\n"
+        """        
+        retry = True
+        while retry:
+            # Prepare PR title and description
+            pr_title = pr.title or "No title provided"
+            pr_description = pr.body or "No description provided"
+            base_content = f"PR Title: {pr_title}\nPR Description:\n{pr_description}\n\n"
 
-        # Prepare content based on full-context flag
-        pr_files = self.vcsp.get_files_in_pr(repository, pr_number)
-        
-        all_content = [] 
-        all_content_length = 0
-        for file in pr_files:
-            if file.patch and len(file.patch) <= MAX_LENGTH_DIFF:
-                file.patch = remove_hunk_counts(file.patch)
-                if self.full_context and not is_new_file(file.patch) and not is_deleted_file(file.patch):                    
-                    try:
-                        file_content = self.vcsp.get_file_content(repository, file.filename, ref=pr.head_sha)
-                        file_chunk = f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}"
-                    except ValueError as e:
-                        logging.error(f"Skipping file {file.filename}: {str(e)}")
+            # Prepare content based on full-context flag
+            pr_files = self.vcsp.get_files_in_pr(repository, pr_number)
+            
+            all_content = [] 
+            all_content_length = 0
+            for file in pr_files:
+                if file.patch and len(file.patch) <= MAX_LENGTH_DIFF:
+                    file.patch = remove_hunk_counts(file.patch)
+                    if self.full_context and not is_new_file(file.patch) and not is_deleted_file(file.patch):                    
+                        try:
+                            file_content = self.vcsp.get_file_content(repository, file.filename, ref=pr.head_sha)
+                            file_chunk = f"File: {file.filename}\n{file_content}\n\nDiff:\n{file.patch}"
+                        except ValueError as e:
+                            logging.error(f"Skipping file {file.filename}: {str(e)}")
 
-                else:
-                    file_chunk = f"File: {file.filename}\nDiff:\n{file.patch}"
-                all_content.append(file_chunk)
-                all_content_length += len(file_chunk)
-                if all_content_length > MAX_TOTAL_LENGTH:
-                    logging.warning(f"Content length exceeded {MAX_LENGTH_DIFF} characters. Truncating.")
-                    break
+                    else:
+                        file_chunk = f"File: {file.filename}\nDiff:\n{file.patch}"
+                    all_content.append(file_chunk)
+                    all_content_length += len(file_chunk)
+                    if all_content_length > MAX_TOTAL_LENGTH:
+                        logging.warning(f"Content length exceeded {MAX_LENGTH_DIFF} characters. Truncating.")
+                        break
 
 
-        diff_content = "\n\n".join(all_content)
+            diff_content = "\n\n".join(all_content)
 
-        # Combine PR title, description, and diffs
-        content = base_content + "Diffs:\n" + diff_content
+            # Combine PR title, description, and diffs
+            content = base_content + "Diffs:\n" + diff_content
 
-        # Get system prompt
-        system_prompt = get_prompt(self.deep)        
-        # Call LLM
-        llm_answer = self.llm.answer(
-            system_prompt=system_prompt,
-            user_prompt="",  # No separate user prompt needed; content includes all info
-            content=content
-        )
+            # Get system prompt
+            system_prompt = get_prompt(self.deep)        
+            # Call LLM
+            llm_answer = self.llm.answer(
+                system_prompt=system_prompt,
+                user_prompt="",  # No separate user prompt needed; content includes all info
+                content=content
+            )
 
-        if llm_answer:
-        # Parse JSON response
-            cleaned_response = self.json_cleaner.strip(llm_answer.response)
-            logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")
-            if not cleaned_response:
-                logging.error("Error: No valid JSON found in LLM response")
-                return None
-            try:
-                review_result = LLMReviewResult.from_json(cleaned_response, 
-                    llm_answer.total_tokens,llm_answer.prompt_tokens, llm_answer.completion_tokens)                
-                return review_result
-            except ValueError as e:
-                logging.error(f"Error parsing LLM response: {str(e)}")
-        return None
+            if llm_answer:
+                if llm_answer.response == "Long_Request" and self.full_context:
+                    self.full_context = False #retrun with less context
+                    logging.warning("LLM response indicates request was too long; retrying with less context.")
+                    continue  # Retry with reduced context
+                retry = False  # Exit retry loop if we got a valid response
+                # Parse JSON response
+                cleaned_response = self.json_cleaner.strip(llm_answer.response)
+                logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")
+                if not cleaned_response:
+                    logging.error("Error: No valid JSON found in LLM response")
+                    return None
+                try:
+                    review_result = LLMReviewResult.from_json(cleaned_response, 
+                        llm_answer.total_tokens,llm_answer.prompt_tokens, llm_answer.completion_tokens)                
+                    return review_result
+                except ValueError as e:
+                    logging.error(f"Error parsing LLM response: {str(e)}")
+            return None
