@@ -1,7 +1,9 @@
 #!/bin/bash
 
-IMAGE_NAME=lemaxw/code-reviewer
-TAG=2.0.1
+# Accept image name and tag as parameters with defaults
+IMAGE_NAME=${1:-lemaxw/code-reviewer}
+TAG=${2:-2.0.1}
+
 
 # Get directory of script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
