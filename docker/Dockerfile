@@ -12,9 +12,6 @@ WORKDIR /app
 COPY . /app/
 RUN rm -rf /app/docker
 
-# Copy docker helper scripts into /scripts
-COPY docker/*.sh /scripts/
-RUN chmod +x /scripts/*
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
