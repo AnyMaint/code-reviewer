@@ -36,17 +36,14 @@ class ChatGPTLLM(LLMInterface):
                               total_tokens=usage.total_tokens,
                               prompt_tokens=usage.prompt_tokens,
                               completion_tokens=usage.completion_tokens)
-        except BadRequestError as e:
+        except (BadRequestError, OpenAIError) as e:
             error_message = str(e)
-            if "context length" in error_message or "context_length_exceeded" in error_message:
+            if "context length" in error_message or "context_length_exceeded" in error_message or 'Request too larg' in error_message:
                 logging.warning("Request too long for model context window.")
                 return ModelResult(response="Long_Request", total_tokens=0, prompt_tokens=0, completion_tokens=0)
             else:
-                logging.error(f"ChatGPT BadRequestError: {error_message}")
-                return None
-        except OpenAIError as e:
-            logging.error(f"OpenAI API Error: {str(e)}")
-            return None        
+                logging.error(f"ChatGPT Error: {error_message}")
+                return None            
         except Exception as e:
             print(f"Error communicating with ChatGPT API: {str(e)}")
             return None
