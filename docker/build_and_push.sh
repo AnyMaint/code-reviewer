@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Accept image name and tag as parameters with defaults
-IMAGE_NAME=${1:-lemaxw/code-reviewer}
+[ -n "$1" ] && IMAGE_NAME="$1"
 TAG=${2:-2.0.1}
 
 

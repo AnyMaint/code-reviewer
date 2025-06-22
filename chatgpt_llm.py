@@ -11,7 +11,7 @@ class ChatGPTLLM(LLMInterface):
         if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable is required for ChatGPT")
         self.client = openai.OpenAI(api_key=api_key)
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.model = os.getenv("OPENAI_MODEL", "gpt-4o")
 
     def answer(self, system_prompt: str, user_prompt: str, content: str) -> ModelResult:
         """Generate a JSON response for the given prompts and content."""

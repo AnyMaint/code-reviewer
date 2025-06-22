@@ -1,5 +1,6 @@
 import requests
 import os
+from datetime import datetime, timedelta
 
 # === Config ===
 WORKSPACE = os.getenv('BITBUCKET_WORKSPACE')
@@ -13,6 +14,7 @@ TOKEN_TRIGGER = "Total tokens"
 # === Stats ===
 issuesHandled = 0
 issuesReviewed = 0
+WEEK_AGO = datetime.utcnow() - timedelta(days=7)
 
 def fetch_repositories():
     """Fetch all repositories in the workspace."""
@@ -27,11 +29,11 @@ def fetch_repositories():
     return repos
 
 def fetch_all_prs(repo_slug):
-    """Fetch last 50 PRs for a given repository."""
+    """Fetch last 50 PRs for a given repository, filtered to only include those from the past week."""
     all_prs = []
     url = f"https://api.bitbucket.org/2.0/repositories/{WORKSPACE}/{repo_slug}/pullrequests"
     params = {
-        'pagelen': 50,
+        'pagelen': 25,
         'state': ['OPEN', 'MERGED']
     }
     resp = requests.get(url, auth=(USERNAME, APP_PASSWORD), params=params)
@@ -39,7 +41,12 @@ def fetch_all_prs(repo_slug):
         print(f"Failed to fetch PRs for {repo_slug}")
         return []
     data = resp.json()
-    all_prs.extend(data.get('values', []))
+    for pr in data.get('values', []):
+        created_on = pr.get('created_on')
+        if created_on:
+            created_dt = datetime.strptime(created_on, '%Y-%m-%dT%H:%M:%S.%f%z').replace(tzinfo=None)
+            if created_dt >= WEEK_AGO:
+                all_prs.append(pr)
     return all_prs
 
 def fetch_comments(repo_slug, pr_id):
@@ -84,10 +91,10 @@ def process_repository(repo_slug):
                 issuesReviewed += 1
                 issuesReviewedRepo += 1
                 found_review = True
+
     print(f"Repository: {repo_slug} - Issues Handled: {issuesHandledRepo}, Issues Reviewed: {issuesReviewedRepo}")
 
 def main():
-    
     for repo in repos:
         process_repository(repo)
 

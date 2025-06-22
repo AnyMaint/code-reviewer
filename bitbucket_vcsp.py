@@ -4,31 +4,63 @@ Bitbucket implementation of the VCSPInterface.
 Requires: pip install atlassian-python-api
 """
 import os
+import re
 import logging
 import requests
 from types import SimpleNamespace
 from atlassian import Bitbucket
 from vcsp_interface import VCSPInterface, PRFile, PR, Commit
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
 
 def _parse_diff_per_file(diff_text):
-    files = []
-    current = None
-    buff = []
-    for line in diff_text.splitlines(keepends=True):
-        if line.startswith('diff --git'):
-            if current:
-                files.append(PRFile(current, ''.join(buff)))
-            parts = line.split()
-            current = parts[2][2:]
-            buff = [line]
-        elif current:
-            buff.append(line)
-    if current:
-        files.append(PRFile(current, ''.join(buff)))
-    return files
+    try:
+        files = []
+        current_file = None
+        current_diff = []
+        changed_lines = set()
+        line_num_new = None
+
+        for line in diff_text.splitlines(keepends=False):
+            if line.startswith('diff --git'):
+                if current_file:
+                    files.append(PRFile(current_file, '\n'.join(current_diff), changed_lines))
+                parts = line.split()
+                if len(parts) >= 3:
+                    current_file = parts[2][2:]  # strip "a/"
+                else:
+                    logger.warning("Malformed diff header: %s", line)
+                    current_file = "unknown"
+                current_diff = [line]
+                changed_lines = set()
+                line_num_new = None
+            elif current_file:
+                current_diff.append(line)
+                if line.startswith('@@'):
+                    try:
+                        match = re.search(r'\+(\d+)', line)
+                        if match:
+                            line_num_new = int(match.group(1)) - 1
+                    except Exception as e:
+                        logger.warning("Failed to parse hunk header: %s", line)
+                elif line.startswith('+') and not line.startswith('+++'):
+                    if line_num_new is not None:
+                        line_num_new += 1
+                        changed_lines.add(line_num_new)
+                elif not line.startswith('-'):
+                    if line_num_new is not None:
+                        line_num_new += 1
+
+        if current_file:
+            files.append(PRFile(current_file, '\n'.join(current_diff), changed_lines))
+
+        return files
+
+    except Exception as e:
+        logger.error("Failed to parse diff text: %s", e)
+        return []
 
 
 class BitbucketVCSP(VCSPInterface):
@@ -47,10 +79,113 @@ class BitbucketVCSP(VCSPInterface):
             raise
         self.repo_slug = None
         self.pr_number = None
+    
+    def _get_json(self, url):
+        try:
+            response = requests.get(url, auth=(self.bb_user, self.bb_pass))
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            logger.error("API request failed for URL %s: %s", url, e)
+            return {}
 
     def get_repository(self, repo_name: str):
         # Not needed for PR operations; could return repo metadata if desired
         return None
+
+
+
+    def get_last_ai_review_time(self, repo_name, pr_number):
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.workspace}/{repo_name}/pullrequests/{pr_number}/comments"
+        last_time = None
+        while url:
+            data = self._get_json(url)
+            for comment in data.get("values", []):
+                if "AI Comment:" in comment.get("content", {}).get("raw", ""):
+                    comment_time = comment["created_on"]
+                    if not last_time or comment_time > last_time:
+                        last_time = comment_time
+            url = data.get("next")
+        return last_time
+
+    def get_commits_after_time(self, repo_name, pr_number, since_time):
+        url = f"https://api.bitbucket.org/2.0/repositories/{self.workspace}/{repo_name}/pullrequests/{pr_number}/commits"
+        commits = []
+        while url:
+            data = self._get_json(url)
+            for commit in data.get("values", []):
+                if commit["date"] > since_time:
+                    commits.append(commit)
+            url = data.get("next")
+        return commits
+
+    def get_commit_diff(self, repo_name, commit_hash):
+        try:
+            url = f"https://api.bitbucket.org/2.0/repositories/{self.workspace}/{repo_name}/diff/{commit_hash}"
+            response = requests.get(url, auth=(self.bb_user, self.bb_pass))
+            response.raise_for_status()
+            return _parse_diff_per_file(response.text)
+        except Exception as e:
+            logger.error("Failed to fetch or parse diff for commit %s: %s", commit_hash, e)
+            return []
+
+    def get_pr_diff(self, repo_name, pr_number):
+        try:
+            url = f"https://api.bitbucket.org/2.0/repositories/{self.workspace}/{repo_name}/pullrequests/{pr_number}/diff"
+            response = requests.get(url, auth=(self.bb_user, self.bb_pass))
+            response.raise_for_status()
+            return _parse_diff_per_file(response.text)
+        except Exception as e:
+            logger.error("Failed to fetch or parse PR diff: %s", e)
+            return []
+
+    def get_files_in_pr(self, repo_name: str, pr_number: int):
+        last_review_time = self.get_last_ai_review_time(repo_name, pr_number)
+
+        if last_review_time:
+            commits = self.get_commits_after_time(repo_name, pr_number, last_review_time)
+            if not commits:
+                logger.info("No new commits after last AI review.")
+                return []
+
+            per_commit_diffs = []
+            for commit in commits:
+                commit_diff = self.get_commit_diff(repo_name, commit["hash"])
+                per_commit_diffs.append(commit_diff)
+
+            # Conflict detection
+            merged = defaultdict(lambda: {"diff": [], "lines": set()})
+            conflict_files = set()
+
+            for commit_diff in per_commit_diffs:
+                for pr_file in commit_diff:
+                    if pr_file.filename in merged:
+                        if merged[pr_file.filename]["lines"] & pr_file.lines:
+                            conflict_files.add(pr_file.filename)
+                    merged[pr_file.filename]["diff"].append(pr_file)
+                    merged[pr_file.filename]["lines"].update(pr_file.lines)
+
+            # Final output
+            final_files = []
+            full_pr_diff = None  # lazy load
+            for filename, group in merged.items():
+                if filename in conflict_files:
+                    if full_pr_diff is None:
+                        full_pr_diff = {f.filename: f for f in self.get_pr_diff(repo_name, pr_number)}
+                    if filename in full_pr_diff:
+                        final_files.append(full_pr_diff[filename])
+                    else:
+                        logger.warning("Conflict file %s not found in PR diff", filename)
+                else:
+                    for pr_file in group["diff"]:
+                        final_files.append(pr_file)
+
+            return final_files
+
+        else:
+            # No AI review, return full PR diff
+            logger.info("No previous AI comment found, taking full PR diff.")
+            return self.get_pr_diff(repo_name, pr_number)
 
     def get_pull_request(self, repo_name: str, pr_number: int) -> PR:
         try:
@@ -72,19 +207,8 @@ class BitbucketVCSP(VCSPInterface):
             raise
         return PR(title, body, head_sha, state)
 
-    def get_files_in_pr(self, repo_name: str, pr_number: int):
-        diff_url = f"https://api.bitbucket.org/2.0/repositories/{self.workspace}/{repo_name}/pullrequests/{pr_number}/diff"
-        try:
-            response = requests.get(diff_url, auth=(self.bb_user, self.bb_pass))
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            logger.error("Failed to fetch pull request diff for %s #%s: %s", repo_name, pr_number, e)
-            raise
-        try:
-            return _parse_diff_per_file(response.text)
-        except Exception as e:
-            logger.error("Error parsing diff text: %s", e)
-            raise
+
+        
 
     def get_file_content(self, repo_name: str, file_path: str, ref: str):
         # Fetch raw file content via REST API

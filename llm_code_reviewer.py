@@ -81,8 +81,9 @@ class LLMCodeReviewer:
         Returns:
             LLMReviewResult containing the parsed reviews with adjusted line numbers.
         """        
-        retry = True
-        while retry:
+        retry_count = 0
+        while retry_count < 2:
+            retry_count += 1
             # Prepare PR title and description
             pr_title = pr.title or "No title provided"
             pr_description = pr.body or "No description provided"
@@ -121,17 +122,17 @@ class LLMCodeReviewer:
             system_prompt = get_prompt(self.deep)        
             # Call LLM
             llm_answer = self.llm.answer(
-                system_prompt=system_prompt,
-                user_prompt="",  # No separate user prompt needed; content includes all info
-                content=content
-            )
+                                system_prompt=system_prompt,
+                                user_prompt="",  # No separate user prompt needed; content includes all info
+                                content=content
+                            ) if all_content_length > 0 else None
 
             if llm_answer:
                 if llm_answer.response == "Long_Request" and self.full_context:
                     self.full_context = False #retrun with less context
                     logging.warning("LLM response indicates request was too long; retrying with less context.")
                     continue  # Retry with reduced context
-                retry = False  # Exit retry loop if we got a valid response
+                retry_count = 999  # Exit retry loop if we got a valid response
                 # Parse JSON response
                 cleaned_response = self.json_cleaner.strip(llm_answer.response)
                 logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")

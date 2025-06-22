@@ -8,6 +8,7 @@ from github_vcsp import GithubVCSP
 from gitlab_vcsp import GitlabVCSP
 from bitbucket_vcsp import BitbucketVCSP
 from grok_llm import GrokLLM
+from claude_llm import ClaudeLLM
 from models import LLMReviewResult, CodeReview
 from llm_code_reviewer import LLMCodeReviewer
 
@@ -36,10 +37,10 @@ parser.add_argument(
 )
 parser.add_argument(
     "--llm",
-    choices=["chatgpt", "gemini", "grok"],
+    choices=["chatgpt", "gemini", "grok", "claude"],
     default="chatgpt",
     nargs="+",
-    help="LLM to use (one or more): 'chatgpt', 'gemini', or 'grok' (default: chatgpt)",
+    help="LLM to use (one or more): 'chatgpt', 'gemini', 'grok' or claude (default: chatgpt)",
 )
 
 parser.add_argument(
@@ -88,6 +89,7 @@ llm_map = {
     "chatgpt": ChatGPTLLM,
     "gemini": GeminiLLM,
     "grok": GrokLLM,
+    "claude": ClaudeLLM,
 }
 
 for i in range(len(args.llm)):
@@ -157,7 +159,7 @@ for i in range(len(args.llm)):
         print(review_summary)
                 
 
-    if args.mode == "comments" and pr.state.lower() == "open":
+    if args.mode == "comments" and pr.state.lower() == "open" and review_result and review_result.reviews:
         try:
             head_commit = vcsp.get_commit(args.repository, pr.head_sha)
         except Exception as e:
