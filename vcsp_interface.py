@@ -44,9 +44,13 @@ class VCSPInterface(ABC):
         pass
 
 class PRFile:
-    def __init__(self, filename, patch):
+    def __init__(self, filename, patch, lines=None):
         self.filename = filename
         self.patch = patch
+        self.lines = lines or set()
+        
+    def __repr__(self):
+        return f"<PRFile {self.filename} lines={len(self.lines)}>"
 
 class PR:
     def __init__(self, title, body, head_sha, state):

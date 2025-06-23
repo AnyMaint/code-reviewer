@@ -39,7 +39,7 @@ parser.add_argument(
     choices=["chatgpt", "gemini", "grok"],
     default="chatgpt",
     nargs="+",
-    help="LLM to use (one or more): 'chatgpt', 'gemini', or 'grok' (default: chatgpt)",
+    help="LLM to use (one or more): 'chatgpt', 'gemini', 'grok' (default: chatgpt)",
 )
 
 parser.add_argument(
@@ -87,7 +87,8 @@ else:
 llm_map = {
     "chatgpt": ChatGPTLLM,
     "gemini": GeminiLLM,
-    "grok": GrokLLM,
+    "grok": GrokLLM
+    
 }
 
 for i in range(len(args.llm)):
@@ -136,11 +137,12 @@ for i in range(len(args.llm)):
         print("  No issues found.")    
     else:
         review_summary = ""
-        for review in review_result.reviews:
-            review_summary += f"\n  File: {review.file}, Line: {review.line}"
-            if review.comments:
+        for review in review_result.reviews:            
+            if review.comments and (review.bug_count != 0 or review.smell_count != 0 or                
+                review.optimization_count != 0 or review.logical_errors != 0 or
+                review.performance_issues != 0):
+                review_summary += f"\n  File: {review.file}, Line: {review.line}"
                 review_summary += "    Comments: " + '\n'.join(str(comment) for comment in review.comments)
-            if args.add_statistic_info:
                 if review.bug_count != 0:
                     review_summary += f"    bugCount={review.bug_count},"
                 if review.smell_count != 0:
@@ -156,7 +158,7 @@ for i in range(len(args.llm)):
         print(review_summary)
                 
 
-    if args.mode == "comments" and pr.state.lower() == "open":
+    if args.mode == "comments" and pr.state.lower() == "open" and review_result and review_result.reviews:
         try:
             head_commit = vcsp.get_commit(args.repository, pr.head_sha)
         except Exception as e:
@@ -172,7 +174,9 @@ for i in range(len(args.llm)):
                             side="RIGHT"
                         )
         for review in review_result.reviews:
-            if review.comments:
+            if review.comments and (review.bug_count != 0 or review.smell_count != 0 or
+                review.optimization_count != 0 or review.logical_errors != 0 or
+                review.performance_issues != 0):
                 lines = ["AI Comment:"] + review.comments
 
                 # add any non-zero counts

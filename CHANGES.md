@@ -2,7 +2,10 @@
 All notable changes to **AI Code Reviewer** will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to semantic versioning.
-
+## [2.1.0] - 2025-06-22
+- Added Docker compilation support
+- Improved code review granularity for Bitbucket; it now processes only the latest commits. If commits conflict, it reviews the entire file (as before).
+- Fixed several bugs
 ## [2.0.1] - 2025-05-02
 ### Added
 - Unit tests
@@ -14,7 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - LLM output in JSON
 - Issues lines detection based on LLM output only
 - Support multiple LLM models: Added the ability to specify one or more LLMs via the --llm option (e.g., --llm chatgpt grok).
-- Enhanced metrics reporting: Introduced token usage, bug count, and a summary of general review information as additional metrics.
+- Enhanced metrics reporting: Introduced token usage, bug count, and a summary of general review information as additional metrics using ( --add_statistic_info).
+- possible to use a container to execute the command (with defaults): 
+  docker run --rm --name code-review-runner --env-file .env lemaxw/code-reviewer:2.0.1 purge-agent 27
+  or overwrite the defaults:
+  docker run --rm --name code-reviewer-temp --env-file .env --entrypoint python3 lemaxw/code-reviewer:2.0.1 review.py mos-server-agent-dcl 160 --vcsp bitbucket --deep --full-context --llm chatgpt --mode issues --add_statistic_info
 
 ## [1.2] - 2025-04-25
 ### Added
