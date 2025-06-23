@@ -132,7 +132,7 @@ class LLMCodeReviewer:
                     self.full_context = False #retrun with less context
                     logging.warning("LLM response indicates request was too long; retrying with less context.")
                     continue  # Retry with reduced context
-                retry_count = 999  # Exit retry loop if we got a valid response
+                retry_count = 2  # Exit retry loop if we got a valid response
                 # Parse JSON response
                 cleaned_response = self.json_cleaner.strip(llm_answer.response)
                 logging.debug(f"Cleaned Response:\n{cleaned_response[:LOG_CHAR_LIMIT]}... (truncated)")

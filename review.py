@@ -8,7 +8,6 @@ from github_vcsp import GithubVCSP
 from gitlab_vcsp import GitlabVCSP
 from bitbucket_vcsp import BitbucketVCSP
 from grok_llm import GrokLLM
-from claude_llm import ClaudeLLM
 from models import LLMReviewResult, CodeReview
 from llm_code_reviewer import LLMCodeReviewer
 
@@ -37,10 +36,10 @@ parser.add_argument(
 )
 parser.add_argument(
     "--llm",
-    choices=["chatgpt", "gemini", "grok", "claude"],
+    choices=["chatgpt", "gemini", "grok"],
     default="chatgpt",
     nargs="+",
-    help="LLM to use (one or more): 'chatgpt', 'gemini', 'grok' or claude (default: chatgpt)",
+    help="LLM to use (one or more): 'chatgpt', 'gemini', 'grok' (default: chatgpt)",
 )
 
 parser.add_argument(
@@ -88,8 +87,8 @@ else:
 llm_map = {
     "chatgpt": ChatGPTLLM,
     "gemini": GeminiLLM,
-    "grok": GrokLLM,
-    "claude": ClaudeLLM,
+    "grok": GrokLLM
+    
 }
 
 for i in range(len(args.llm)):

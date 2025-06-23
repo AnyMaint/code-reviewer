@@ -4,7 +4,6 @@ All notable changes to **AI Code Reviewer** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to semantic versioning.
 ## [2.1.0] - 2025-06-22
 - Added Docker compilation support
-- Added option to select Claude in LLM
 - Improved code review granularity for Bitbucket; it now processes only the latest commits. If commits conflict, it reviews the entire file (as before).
 - Fixed several bugs
 ## [2.0.1] - 2025-05-02
